@@ -1,0 +1,68 @@
+erDiagram
+    User ||--o| UserProfile : has
+    User ||--o{ Rating : creates
+    User ||--o{ Playlist : owns
+    MovieMetadata ||--o{ Rating : receives
+    MovieMetadata }o--o{ Playlist : contains
+    
+    User {
+        int id PK
+        string username UK
+        string email UK
+        string password
+        boolean is_active
+        datetime date_joined
+    }
+    
+    UserProfile {
+        int id PK
+        int user_id FK
+        json favorite_genres
+        text bio
+        string avatar_url
+        datetime created_at
+        datetime updated_at
+    }
+    
+    MovieMetadata {
+        int id PK
+        int tmdb_id UK "TMDb API ID"
+        string title
+        text overview
+        date release_date
+        string poster_path
+        string backdrop_path
+        float vote_average
+        int vote_count
+        float popularity
+        json genres
+        int runtime
+        datetime created_at
+        datetime updated_at
+    }
+    
+    Rating {
+        int id PK
+        int user_id FK
+        int movie_id FK
+        int score "1-5 stars"
+        text review
+        datetime created_at
+        datetime updated_at
+    }
+    
+    Playlist {
+        int id PK
+        int owner_id FK
+        string name
+        text description
+        string visibility "public/private"
+        datetime created_at
+        datetime updated_at
+    }
+    
+    Playlist_Movies {
+        int id PK
+        int playlist_id FK
+        int movie_id FK
+    }

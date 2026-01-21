@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,8 +26,7 @@ SECRET_KEY = 'django-insecure-)p_7+tce_=xv@3mqxoh3wr#-t@#ca!_ruwl8jcl-p$9!9i21wz
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 # Application definition
 
@@ -37,11 +37,22 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'apps.movies_api'
+    
+    
+    #Third party apps
+     'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
+    'django_filters',
+    'drf_yasg',
+    
+    # Local apps
+    'apps.movies_api',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,8 +86,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
+        'NAME': config('DB_NAME', default=BASE_DIR / 'db.sqlite3'),
+        'USER': config('DB_USER', default=''),
+        'PASSWORD': config('DB_PASSWORD', default=''),
+        'HOST': config('DB_HOST', default=''),
+        'PORT': config('DB_PORT', default=''),
     }
 }
 
@@ -116,3 +131,96 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# Media files
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+    }
+}
+
+# JWT Configuration
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:3000'
+).split(',')
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Redis Cache Configuration
+#CACHES = {
+ #   'default': {
+  #      'BACKEND': 'django_redis.cache.RedisCache',
+  #      'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0'),
+  #      'OPTIONS': {
+   #         'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+   #     },
+   #     'KEY_PREFIX': 'nexus',
+   #     'TIMEOUT': 300,  # 5 minutes default
+    #}
+#}
+
+# Celery Configuration
+#CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/1')
+#CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/2')
+#CELERY_ACCEPT_CONTENT = ['json']
+#CELERY_TASK_SERIALIZER = 'json'
+#CELERY_RESULT_SERIALIZER = 'json'
+#CELERY_TIMEZONE = TIME_ZONE
+
+# TMDb API Configuration
+TMDB_API_KEY = config('TMDB_API_KEY', default='')
+TMDB_BASE_URL = config('TMDB_BASE_URL', default='https://api.themoviedb.org/3')
+
+# Swagger Settings
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    },
+    'USE_SESSION_AUTH': False,
+}

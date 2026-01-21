@@ -1,0 +1,74 @@
+# Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/media
+/staticfiles
+/static
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+*.cover
+
+# Migrations (optional - some teams commit these)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# Backup files
+*.bak
+
+# If using PostgreSQL
+*.dump
