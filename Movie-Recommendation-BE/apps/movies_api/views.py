@@ -23,7 +23,6 @@ class MovieMetadataViewSet(viewsets.ModelViewSet):
     queryset = MovieMetadata.objects.all()
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['release_date']  # Removed 'genres' since it's a JSONField
     search_fields = ['title', 'overview']
     ordering_fields = ['popularity', 'vote_average', 'release_date', 'created_at']
     ordering = ['-popularity']
@@ -33,6 +32,15 @@ class MovieMetadataViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return MovieMetadataListSerializer
         return MovieMetadataSerializer
+    
+    def get_queryset(self):
+        """Apply custom filters"""
+        from apps.movies_api.filters import MovieMetadataFilter
+        queryset = MovieMetadata.objects.all()
+        
+        # Apply custom filterset
+        filterset = MovieMetadataFilter(self.request.query_params, queryset=queryset)
+        return filterset.qs
     
     @action(detail=False, methods=['get'])
     def trending(self, request):
@@ -54,6 +62,50 @@ class MovieMetadataViewSet(viewsets.ModelViewSet):
         movies = self.queryset.filter(vote_count__gte=100).order_by('-vote_average')[:20]
         serializer = MovieMetadataListSerializer(movies, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def recommendations(self, request):
+        """Get personalized recommendations for the current user"""
+        from apps.movies_api.services.recommendation_service import recommendation_service
+        
+        limit = int(request.query_params.get('limit', 20))
+        recommendations = recommendation_service.get_recommendations_for_user(request.user, limit)
+        
+        # Format response
+        results = []
+        for rec in recommendations:
+            movie_data = MovieMetadataListSerializer(rec['movie']).data
+            movie_data['match_score'] = rec['match_score']
+            results.append(movie_data)
+        
+        return Response(results)
+    
+    @action(detail=True, methods=['get'])
+    def similar(self, request, pk=None):
+        """Get movies similar to this one"""
+        from apps.movies_api.services.recommendation_service import recommendation_service
+        
+        movie = self.get_object()
+        limit = int(request.query_params.get('limit', 10))
+        
+        similar_movies = recommendation_service.get_similar_movies(movie, limit)
+        serializer = MovieMetadataListSerializer(similar_movies, many=True)
+        
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def match_score(self, request, pk=None):
+        """Get match score for this movie for the current user"""
+        from apps.movies_api.services.recommendation_service import recommendation_service
+        
+        movie = self.get_object()
+        score = recommendation_service.calculate_match_score(request.user, movie)
+        
+        return Response({
+            'movie_id': movie.id,
+            'title': movie.title,
+            'match_score': score
+        })
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
@@ -91,6 +143,29 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get statistics about current user's movie watching habits"""
+        from apps.movies_api.services.recommendation_service import recommendation_service
+        
+        stats = recommendation_service.get_user_statistics(request.user)
+        
+        if not stats:
+            return Response({
+                'message': 'No statistics available. Start rating some movies!'
+            })
+        
+        # Add serialized highest and lowest rated movies
+        if 'highest_rated' in stats and stats['highest_rated']:
+            from apps.movies_api.serializers import RatingSerializer
+            stats['highest_rated'] = RatingSerializer(stats['highest_rated']).data
+        
+        if 'lowest_rated' in stats and stats['lowest_rated']:
+            from apps.movies_api.serializers import RatingSerializer
+            stats['lowest_rated'] = RatingSerializer(stats['lowest_rated']).data
+        
+        return Response(stats)
 
 
 class RatingViewSet(viewsets.ModelViewSet):
@@ -294,3 +369,87 @@ def register_user(request):
             status=status.HTTP_201_CREATED
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def tmdb_search(request):
+    """
+    Search movies on TMDb API
+    """
+    from apps.movies_api.services.tmdb_service import tmdb_service
+    
+    query = request.query_params.get('q', '')
+    
+    if not query:
+        return Response(
+            {"error": "Query parameter 'q' is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    results = tmdb_service.search_movies(query)
+    
+    if not results:
+        return Response(
+            {"error": "TMDb API request failed"},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+    
+    return Response(results)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def import_movie_from_tmdb(request):
+    """
+    Import a movie from TMDb to local database
+    """
+    from apps.movies_api.services.tmdb_service import tmdb_service
+    
+    tmdb_id = request.data.get('tmdb_id')
+    
+    if not tmdb_id:
+        return Response(
+            {"error": "tmdb_id is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Check if already exists
+        existing_movie = MovieMetadata.objects.filter(tmdb_id=tmdb_id).first()
+        if existing_movie:
+            return Response(
+                {
+                    "message": "Movie already exists in database",
+                    "movie": MovieMetadataSerializer(existing_movie).data
+                },
+                status=status.HTTP_200_OK
+            )
+        
+        # Fetch from TMDb
+        movie_details = tmdb_service.get_movie_details(tmdb_id)
+        
+        if not movie_details:
+            return Response(
+                {"error": "Movie not found on TMDb"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Normalize and save
+        movie_data = tmdb_service.normalize_movie_data(movie_details)
+        movie = MovieMetadata.objects.create(**movie_data)
+        
+        return Response(
+            {
+                "message": "Movie imported successfully",
+                "movie": MovieMetadataSerializer(movie).data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+        
