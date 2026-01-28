@@ -51,4 +51,4 @@ class MovieMetadataFilter(django_filters.FilterSet):
             return queryset.filter(id__in=movie_ids)
         else:
             # PostgreSQL: Use native JSON contains
-            return queryset.filter(genres__contains=[value])
+            return queryset.filter(genres__contains=[value]) 
