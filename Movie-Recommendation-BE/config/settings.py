@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)p_7+tce_=xv@3mqxoh3wr#-t@#ca!_ruwl8jcl-p$9!9i21wz'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     'apps.movies_api',
 ]
 # Fix: use 127.0.0.1 (common Windows fix) and ensure format
-REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
+REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379/0')
 
 CACHES = {
     'default': {
