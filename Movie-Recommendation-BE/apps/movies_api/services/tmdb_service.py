@@ -1,7 +1,52 @@
 import requests
+import logging
 from django.conf import settings
-from typing import Dict, List, Optional
+from django.core.cache import cache
+from typing import Dict, List, Optional, Any, Callable
 from datetime import datetime
+from functools import wraps
+
+logger = logging.getLogger(__name__)
+
+
+def cache_tmdb(ttl: int = 3600):
+    """
+    Decorator to cache TMDb API responses in Redis.
+    Handles Redis connection failures gracefully.
+    """
+    def decorator(func: Callable):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            # Generate cache key based on function name and arguments
+            # endpoint = args[0] if args else kwargs.get('endpoint', '')
+            # params = args[1] if len(args) > 1 else kwargs.get('params', {})
+            # Simplified key: tmdb:{func_name}:{args}:{kwargs}
+            key_args = ":".join(map(str, args))
+            key_kwargs = ":".join(f"{k}={v}" for k, v in sorted(kwargs.items()))
+            cache_key = f"tmdb:{func.__name__}:{key_args}:{key_kwargs}"
+            
+            try:
+                cached_data = cache.get(cache_key)
+                if cached_data is not None:
+                    logger.debug(f"Cache hit for key: {cache_key}")
+                    return cached_data
+            except Exception as e:
+                logger.error(f"Redis error (cache.get): {e}")
+                # Fallback to direct call
+            
+            # Cache miss or Redis error
+            result = func(self, *args, **kwargs)
+            
+            if result is not None:
+                try:
+                    cache.set(cache_key, result, timeout=ttl)
+                    logger.debug(f"Cached result for key: {cache_key} (TTL: {ttl})")
+                except Exception as e:
+                    logger.error(f"Redis error (cache.set): {e}")
+            
+            return result
+        return wrapper
+    return decorator
 
 
 class TMDbService:
@@ -38,104 +83,62 @@ class TMDbService:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"TMDb API Error: {e}")
+            logger.error(f"TMDb API Error for endpoint {endpoint}: {e}")
             return None
     
+    @cache_tmdb(ttl=3600)  # 1 hour
     def get_popular_movies(self, page: int = 1) -> Optional[Dict]:
         """
         Get popular movies
-        
-        Args:
-            page: Page number (1-500)
-            
-        Returns:
-            Dictionary with results and pagination info
         """
         return self._make_request('/movie/popular', {'page': page})
     
+    @cache_tmdb(ttl=86400)  # 24 hours
     def get_trending_movies(self, time_window: str = 'week') -> Optional[Dict]:
         """
         Get trending movies
-        
-        Args:
-            time_window: 'day' or 'week'
-            
-        Returns:
-            Dictionary with trending movies
         """
         return self._make_request(f'/trending/movie/{time_window}')
     
+    @cache_tmdb(ttl=3600)  # 1 hour
     def get_top_rated_movies(self, page: int = 1) -> Optional[Dict]:
         """
         Get top rated movies
-        
-        Args:
-            page: Page number
-            
-        Returns:
-            Dictionary with top rated movies
         """
         return self._make_request('/movie/top_rated', {'page': page})
     
+    @cache_tmdb(ttl=1800)  # 30 minutes
     def get_now_playing_movies(self, page: int = 1) -> Optional[Dict]:
         """
         Get movies currently in theaters
-        
-        Args:
-            page: Page number
-            
-        Returns:
-            Dictionary with now playing movies
         """
         return self._make_request('/movie/now_playing', {'page': page})
     
+    @cache_tmdb(ttl=7200)  # 2 hours
     def get_upcoming_movies(self, page: int = 1) -> Optional[Dict]:
         """
         Get upcoming movies
-        
-        Args:
-            page: Page number
-            
-        Returns:
-            Dictionary with upcoming movies
         """
         return self._make_request('/movie/upcoming', {'page': page})
     
+    @cache_tmdb(ttl=604800)  # 1 week (details change rarely)
     def get_movie_details(self, tmdb_id: int) -> Optional[Dict]:
         """
         Get detailed information about a specific movie
-        
-        Args:
-            tmdb_id: TMDb movie ID
-            
-        Returns:
-            Dictionary with movie details
         """
         return self._make_request(f'/movie/{tmdb_id}')
     
+    @cache_tmdb(ttl=1800)  # 30 minutes
     def search_movies(self, query: str, page: int = 1) -> Optional[Dict]:
         """
         Search for movies by title
-        
-        Args:
-            query: Search query
-            page: Page number
-            
-        Returns:
-            Dictionary with search results
         """
         return self._make_request('/search/movie', {'query': query, 'page': page})
     
+    @cache_tmdb(ttl=3600)  # 1 hour
     def get_movie_by_genre(self, genre_id: int, page: int = 1) -> Optional[Dict]:
         """
         Discover movies by genre
-        
-        Args:
-            genre_id: TMDb genre ID
-            page: Page number
-            
-        Returns:
-            Dictionary with movies matching the genre
         """
         return self._make_request('/discover/movie', {
             'with_genres': genre_id,
@@ -143,24 +146,16 @@ class TMDbService:
             'sort_by': 'popularity.desc'
         })
     
+    @cache_tmdb(ttl=86400)  # 24 hours (list changes very rarely)
     def get_genres(self) -> Optional[Dict]:
         """
         Get list of official genres
-        
-        Returns:
-            Dictionary with genre list
         """
         return self._make_request('/genre/movie/list')
     
     def normalize_movie_data(self, tmdb_movie: Dict) -> Dict:
         """
         Convert TMDb movie data to our database format
-        
-        Args:
-            tmdb_movie: Raw movie data from TMDb API
-            
-        Returns:
-            Dictionary matching our MovieMetadata model
         """
         # Parse release date
         release_date = None
@@ -176,11 +171,8 @@ class TMDbService:
         # Get genre names
         genres = []
         if 'genres' in tmdb_movie:
-            # Detailed response includes genre objects
             genres = [g['name'] for g in tmdb_movie['genres']]
         elif 'genre_ids' in tmdb_movie:
-            # Search/list responses only include IDs
-            # You'd need to map these to names using get_genres()
             genres = tmdb_movie['genre_ids']
         
         return {
@@ -198,31 +190,11 @@ class TMDbService:
         }
     
     def get_poster_url(self, poster_path: str, size: str = 'w500') -> str:
-        """
-        Build full poster URL
-        
-        Args:
-            poster_path: Path from TMDb
-            size: Image size (w92, w154, w185, w342, w500, w780, original)
-            
-        Returns:
-            Full URL to poster image
-        """
         if not poster_path:
             return ''
         return f"{self.IMAGE_BASE_URL}/{size}{poster_path}"
     
     def get_backdrop_url(self, backdrop_path: str, size: str = 'w1280') -> str:
-        """
-        Build full backdrop URL
-        
-        Args:
-            backdrop_path: Path from TMDb
-            size: Image size (w300, w780, w1280, original)
-            
-        Returns:
-            Full URL to backdrop image
-        """
         if not backdrop_path:
             return ''
         return f"{self.IMAGE_BASE_URL}/{size}{backdrop_path}"

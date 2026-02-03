@@ -17,15 +17,11 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'sync-trending-movies-daily': {
         'task': 'apps.movies_api.tasks.sync_trending_movies',
-        'schedule': crontab(hour=2, minute=0),  # Run at 2 AM daily
+        'schedule': crontab(hour=0, minute=0),  # Run at Midnight daily
     },
     'update-popularity-weekly': {
         'task': 'apps.movies_api.tasks.bulk_update_popularity',
         'schedule': crontab(hour=3, minute=0, day_of_week=0),  # Sunday at 3 AM
-    },
-    'cleanup-old-movies-monthly': {
-        'task': 'apps.movies_api.tasks.cleanup_old_movies',
-        'schedule': crontab(hour=4, minute=0, day_of_month=1),  # 1st of month at 4 AM
     },
 }
 
