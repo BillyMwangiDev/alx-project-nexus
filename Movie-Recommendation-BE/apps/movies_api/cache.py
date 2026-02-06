@@ -7,6 +7,18 @@ import hashlib
 import json
 
 
+def get_redis_connection(alias='default'):
+    """
+    Wrapper around django_redis.get_redis_connection so tests can patch it.
+    Returns None if django_redis is not available.
+    """
+    try:
+        from django_redis import get_redis_connection as _get
+        return _get(alias)
+    except Exception:
+        return None
+
+
 def cache_key_generator(*args, **kwargs):
     """
     Generate a unique cache key from function arguments
@@ -65,7 +77,7 @@ class CacheManager:
         """
         try:
             # Note: This requires Redis backend
-            from django_redis import get_redis_connection
+            # Use module-level wrapper so tests can monkeypatch `get_redis_connection`
             redis_conn = get_redis_connection("default")
             
             # django-redis prepends the KEY_PREFIX from settings.
@@ -87,9 +99,9 @@ class CacheManager:
         """
         patterns = [
             f'movie:{movie_id}:*',
-            f'movie_detail:{movie_id}',
-            'movie_list:*',
-            'recommendations:*',
+            f'movie:detail:{movie_id}',
+            'movie:list:*',
+            'recommendations:user:*',
         ]
         
         total_deleted = 0

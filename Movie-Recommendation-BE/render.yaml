@@ -1,4 +1,60 @@
-﻿services:
+﻿# Render blueprint for Movie-Recommendation-BE
+# Note: adjust service names and environment variables as required for your account
+services:
+  - type: web_service
+    name: movie-recommendation-be
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: SECRET_KEY
+        fromSecret: SECRET_KEY
+      - key: DATABASE_URL
+        fromSecret: DATABASE_URL
+      - key: REDIS_URL
+        fromSecret: REDIS_URL
+    healthCheckPath: /api/health/
+    plan: free
+    region: oregon
+    autoscale:
+      enabled: true
+      minInstances: 1
+      maxInstances: 4
+    instanceType: large
+    disk: 1024
+    # Resource limits
+    resources:
+      cpu: 1
+      memory: 1024
+
+# Background workers (Celery) - optional, create if you use Celery in production
+  - type: worker
+    name: movie-recommendation-worker
+    env: python
+    startCommand: "celery -A config worker --loglevel=info --concurrency=2"
+    plan: starter
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: SECRET_KEY
+        fromSecret: SECRET_KEY
+      - key: REDIS_URL
+        fromSecret: REDIS_URL
+    instanceType: small
+    resources:
+      cpu: 1
+      memory: 512
+
+# Health check guide:
+# - Ensure your app exposes `/api/health/` returning 200 OK and a small JSON payload.
+# - Render will use the healthCheckPath to consider the service healthy.
+
+# Security notes:
+# - Store `SECRET_KEY`, `DATABASE_URL`, and `REDIS_URL` in Render "Environment > Secrets".
+# - Use Deploy Hooks to trigger deploys from CI after tests pass.
+services:
   - type: web
     name: movie-nexus-api
     runtime: python

@@ -200,5 +200,11 @@ class TMDbService:
         return f"{self.IMAGE_BASE_URL}/{size}{backdrop_path}"
 
 
-# Singleton instance
-tmdb_service = TMDbService()
+# Singleton instance - created with default or test API key
+tmdb_service = None
+
+try:
+    tmdb_service = TMDbService()
+except ValueError:
+    # API key not configured - will be mocked during tests via conftest.py
+    logger.warning("TMDb API key not configured. Service will be mocked during tests.")

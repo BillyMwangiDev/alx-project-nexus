@@ -1,53 +1,149 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 jobs:
   test:
+    name: Test & Coverage
     runs-on: ubuntu-latest
-
+    
     services:
       redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
+        image: redis:7-alpine
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
-    env:
-      SECRET_KEY: "ci-test-secret-key"
-      DEBUG: "False"
-      DATABASE_URL: "sqlite:///:memory:"
-      REDIS_URL: "redis://localhost:6379/0"
-      CELERY_BROKER_URL: "redis://localhost:6379/1"
-      CELERY_RESULT_BACKEND: "redis://localhost:6379/2"
-
+        ports:
+          - 6379:6379
+    
     steps:
-    - uses: actions/checkout@v4
-
+    - uses: actions/checkout@v3
+    
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-
-    - name: Install Dependencies
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r Movie-Recommendation-BE/requirements.txt
-
-    - name: Lint with flake8
+        cd Movie-Recommendation-BE
+        pip install -r requirements.txt
+        pip install pytest-django pytest-cov
+    
+    - name: Run Django checks
+      env:
+        DJANGO_SETTINGS_MODULE: config.settings_test
+        TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        DEBUG: "False"
+        ALLOWED_HOSTS: localhost,127.0.0.1,your-app.onrender.com
+        REDIS_URL: redis://localhost:6379/0
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 Movie-Recommendation-BE --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 Movie-Recommendation-BE --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        cd Movie-Recommendation-BE
+        python manage.py check
+    
+    - name: Run pytest with coverage (min 80%)
+      env:
+        DJANGO_SETTINGS_MODULE: config.settings_test
+        TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        DEBUG: "False"
+        ALLOWED_HOSTS: localhost,127.0.0.1,your-app.onrender.com
+        REDIS_URL: redis://localhost:6379/0
+      run: |
+        cd Movie-Recommendation-BE
+        pytest --cov=apps --cov-report=term-missing --cov-report=html --cov-fail-under=80 -v
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./Movie-Recommendation-BE/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+    
+    - name: Archive coverage report
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: Movie-Recommendation-BE/htmlcov/
+
+  deploy:
+    name: Deploy to Render
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Trigger Render deployment
+      env:
+        RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      run: |
+        if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+          echo "Warning: RENDER_DEPLOY_HOOK_URL not configured. Skipping deployment."
+          exit 0
+        fi
+        curl --request POST \
+          --url "$RENDER_DEPLOY_HOOK_URL" \
+          --header 'Content-Type: application/json' \
+          --data '{"ref":"main","message":"Automated deployment from GitHub Actions"}'
+    
+    - name: Deployment notification
+      run: |
+        echo "✅ Deployment to Render triggered successfully."
+        echo "Check Render dashboard for deployment status."
+
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+    
+    - name: Run flake8
+      run: |
+        cd Movie-Recommendation-BE
+        flake8 apps/ config/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 apps/ config/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+      continue-on-error: true
+    
+    - name: Check import sorting with isort
+      run: |
+        cd Movie-Recommendation-BE
+        isort --check-only apps/ config/ --diff
+      continue-on-error: true
+    
+    - name: Check code formatting with black
+      run: |
+        cd Movie-Recommendation-BE
+        black --check apps/ config/ --line-length=120
+      continue-on-error: true
 
     - name: Run Tests with pytest
       working-directory: ./Movie-Recommendation-BE

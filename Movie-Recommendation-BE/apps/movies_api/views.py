@@ -162,22 +162,25 @@ class MovieMetadataViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.data)
     
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def recommendations(self, request):
-        """Get personalized recommendations with caching"""
+        """Get personalized recommendations with caching (allows anonymous users)"""
         from apps.movies_api.services.recommendation_service import recommendation_service
-        
+
         user = request.user
         limit = int(request.query_params.get('limit', 20))
-        
+
+        # Use 'anonymous' key for unauthenticated users to match recommendation service
+        user_id = user.id if getattr(user, 'is_authenticated', False) else 'anonymous'
+
         # Generate cache key
-        cache_key = f"{CacheKeys.recommendations(user.id)}:limit:{limit}"
-        
+        cache_key = f"{CacheKeys.recommendations(user_id)}:limit:{limit}"
+
         # Try cache first
         cached_recommendations = cache.get(cache_key)
         if cached_recommendations is not None:
             return Response(cached_recommendations)
-        
+
         # Get fresh recommendations
         recommendations = recommendation_service.get_recommendations_for_user(user, limit)
         

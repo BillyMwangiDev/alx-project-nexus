@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.http import JsonResponse
 
 # Swagger/OpenAPI Schema
 schema_view = get_schema_view(
@@ -20,19 +21,28 @@ schema_view = get_schema_view(
     permission_classes=[permissions.AllowAny],
 )
 
+def _health(request):
+    return JsonResponse({'status': 'ok'})
+
 urlpatterns = [
     # Admin
     path('admin/', admin.site.urls),
-    
+
     # API
     path('api/', include('apps.movies_api.urls')),
-    
-    # API Documentation
-    re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    path('', schema_view.with_ui('swagger', cache_timeout=0), name='schema-root'),
+
+    # Health endpoint for load balancers / probes
+    path('api/health/', _health, name='health'),
 ]
+
+# API docs: only expose in DEBUG or when explicitly enabled via SHOW_SWAGGER
+if settings.DEBUG or getattr(settings, 'SHOW_SWAGGER', False):
+    urlpatterns += [
+        re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+        path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+        path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+        path('', schema_view.with_ui('swagger', cache_timeout=0), name='schema-root'),
+    ]
 
 # Serve media files in development
 if settings.DEBUG:

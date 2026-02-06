@@ -185,6 +185,9 @@ class APIEndpointTestCase(TestCase):
             username="testuser",
             password="testpass123"
         )
+        # Clear cache to avoid cross-test pollution
+        from django.core.cache import cache
+        cache.clear()
         self.movie = MovieMetadata.objects.create(
             tmdb_id=550,
             title="Fight Club",

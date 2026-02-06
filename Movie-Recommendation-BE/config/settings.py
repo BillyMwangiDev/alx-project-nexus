@@ -31,9 +31,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+# Default to False in production; set via env when developing
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+# Parse ALLOWED_HOSTS from environment; keep empty list when not provided
+raw_hosts = config('ALLOWED_HOSTS', default='')
+ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(',') if h.strip()]
+
+# Fail-fast: require explicit ALLOWED_HOSTS when DEBUG is False
+from django.core.exceptions import ImproperlyConfigured
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured('ALLOWED_HOSTS must be set when DEBUG is False')
 
 # Application definition
 
@@ -124,16 +132,28 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
-if dj_database_url:
+# Database
+# Use explicit DATABASE_URL only when provided and not an obvious placeholder.
+db_url = config('DATABASE_URL', default='').strip()
+use_sqlite = False
+if db_url:
+    # Detect common placeholder hostnames that indicate the value is not real
+    placeholder_tokens = ['@host', '//host', ':host', '@your', 'example.com']
+    if any(tok in db_url for tok in placeholder_tokens):
+        use_sqlite = True
+else:
+    use_sqlite = True
+
+if not use_sqlite and dj_database_url:
     DATABASES = {
         'default': dj_database_url.config(
-            default=config('DATABASE_URL', default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+            default=db_url,
             conn_max_age=600,
             conn_health_checks=True,
         )
     }
 else:
-    # Fallback for local development if dj-database-url is not installed
+    # Fallback to local sqlite for development and when DATABASE_URL is not set
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -261,6 +281,23 @@ CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 TMDB_API_KEY = config('TMDB_API_KEY', default='')
 TMDB_BASE_URL = config('TMDB_BASE_URL', default='https://api.themoviedb.org/3')
 
+# Security and proxy settings
+# If running behind a reverse proxy that terminates TLS, enable this.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# CSRF trusted origins (comma-separated in env)
+raw_csrf = config('CSRF_TRUSTED_ORIGINS', default='')
+CSRF_TRUSTED_ORIGINS = [x.strip() for x in raw_csrf.split(',') if x.strip()]
+
+# Production-only hardening
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
 # Swagger Settings
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
@@ -272,3 +309,7 @@ SWAGGER_SETTINGS = {
     },
     'USE_SESSION_AUTH': False,
 }
+
+# Feature toggles
+# When True (or when DEBUG), Swagger UI will be exposed at the root.
+SHOW_SWAGGER = config('SHOW_SWAGGER', default=False, cast=bool)
