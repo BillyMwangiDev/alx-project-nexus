@@ -1,0 +1,14 @@
+﻿services:
+  - type: web
+    name: movie-nexus-api
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: gunicorn config.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.6
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
