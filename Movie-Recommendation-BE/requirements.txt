@@ -54,7 +54,7 @@ graphene-django-optimizer==0.10.0
 # PRODUCTION SERVER (NEW)
 # ============================================
 gunicorn==21.2.0
-whitenoise==6.6.0
+whitenoise==6.4.0
 
 # ============================================
 # ENVIRONMENT VARIABLES (NEW)

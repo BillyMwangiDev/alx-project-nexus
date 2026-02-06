@@ -1,4 +1,16 @@
-from .settings import *
+"""
+Test settings for Django
+Uses SQLite in-memory database instead of PostgreSQL
+"""
+from .settings import *  # noqa
+
+# Override database to use SQLite for testing
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
+}
 
 # Override cache to use local memory for testing
 CACHES = {

@@ -1,4 +1,5 @@
 from django.db.models import Avg, Count, Q
+from django.db import connection
 from django.core.cache import cache
 from apps.movies_api.models import MovieMetadata, Rating, UserProfile
 from typing import List, Dict, Any, Optional
@@ -22,7 +23,7 @@ class RecommendationService:
         
         try:
             profile = user.profile
-        except UserProfile.DoesNotExist:
+        except Exception:
             return RecommendationService._anonymous_score(movie)
         
         score = 0.0
@@ -167,11 +168,17 @@ class RecommendationService:
         except Exception as e:
             logger.error(f"Redis error (cache.get trending_by_genre): {e}")
 
-        movies = MovieMetadata.objects.filter(
-            genres__contains=[genre]
-        ).order_by('-popularity', '-vote_average')[:limit]
-        
-        results = list(movies)
+        if connection.features.supports_json_field_contains:
+            movies = MovieMetadata.objects.filter(
+                genres__contains=[genre]
+            ).order_by('-popularity', '-vote_average')[:limit]
+            results = list(movies)
+        else:
+            # SQLite doesn't support JSONField contains lookups; fall back to Python filter
+            all_movies = MovieMetadata.objects.all()
+            filtered = [m for m in all_movies if m.genres and genre in m.genres]
+            filtered.sort(key=lambda m: (-m.popularity, -m.vote_average))
+            results = filtered[:limit]
         
         try:
             cache.set(cache_key, results, timeout=3600)
