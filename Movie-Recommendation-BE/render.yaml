@@ -1,70 +1,55 @@
-﻿# Render blueprint for Movie-Recommendation-BE
-# Note: adjust service names and environment variables as required for your account
+﻿# Render blueprint (Free Tier compatible)
+# - Workers (type: worker) are not allowed on the Free plan.
+# - Redis should be defined as a `keyvalue` service.
+# - To run background work on the Free plan, run lightweight tasks inside
+#   your web service or provide a combined start script (e.g. start.sh).
+
 services:
-  - type: web_service
-    name: movie-recommendation-be
-    env: python
-    buildCommand: "./build.sh"
-    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
-    envVars:
-      - key: DJANGO_SETTINGS_MODULE
-        value: config.settings
-      - key: SECRET_KEY
-        fromSecret: SECRET_KEY
-      - key: DATABASE_URL
-        fromSecret: DATABASE_URL
-      - key: REDIS_URL
-        fromSecret: REDIS_URL
-    healthCheckPath: /api/health/
-    plan: free
-    region: oregon
-    autoscale:
-      enabled: true
-      minInstances: 1
-      maxInstances: 4
-    instanceType: large
-    disk: 1024
-    # Resource limits
-    resources:
-      cpu: 1
-      memory: 1024
-
-# Background workers (Celery) - optional, create if you use Celery in production
-  - type: worker
-    name: movie-recommendation-worker
-    env: python
-    startCommand: "celery -A config worker --loglevel=info --concurrency=2"
-    plan: starter
-    envVars:
-      - key: DJANGO_SETTINGS_MODULE
-        value: config.settings
-      - key: SECRET_KEY
-        fromSecret: SECRET_KEY
-      - key: REDIS_URL
-        fromSecret: REDIS_URL
-    instanceType: small
-    resources:
-      cpu: 1
-      memory: 512
-
-# Health check guide:
-# - Ensure your app exposes `/api/health/` returning 200 OK and a small JSON payload.
-# - Render will use the healthCheckPath to consider the service healthy.
-
-# Security notes:
-# - Store `SECRET_KEY`, `DATABASE_URL`, and `REDIS_URL` in Render "Environment > Secrets".
-# - Use Deploy Hooks to trigger deploys from CI after tests pass.
-services:
+  # Main Web Service (Django)
   - type: web
-    name: movie-nexus-api
-    runtime: python
+    name: movie-recommendation-be
     plan: free
-    buildCommand: ./build.sh
-    startCommand: gunicorn config.wsgi:application
+    runtime: python
+    buildCommand: "./build.sh"
+    # Use a combined start script on the Free Tier to run Gunicorn and
+    # any lightweight in-process worker logic if needed.
+    startCommand: "./start.sh"
+    healthCheckPath: /api/health/
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.6
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
       - key: SECRET_KEY
         generateValue: true
-      - key: DEBUG
-        value: False
+      - key: DATABASE_URL
+        fromDatabase:
+          name: movies-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: movies-redis
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: "3.11.6"
+      - key: WEB_CONCURRENCY
+        value: "1"
+
+  # Redis as keyvalue service (allowed on Free plan)
+  - type: keyvalue
+    name: movies-redis
+    plan: free
+
+databases:
+  - name: movies-db
+    plan: free
+    databaseName: movies_api
+
+# Notes:
+# - Create a `start.sh` that starts Gunicorn and any lightweight periodic
+#   tasks you need. Example `start.sh` (make executable):
+#
+#   #!/bin/sh
+#   gunicorn config.wsgi:application --bind 0.0.0.0:$PORT &
+#   # run any lightweight background loop or scheduler here (optional)
+#   wait
+

@@ -145,10 +145,6 @@ databases:
     user: nexus_user
     ipAllowList: []
 
-redis:
-  - name: nexus-redis
-    ipAllowList: []
-
 envVarGroups:
   - name: nexus-prod-secrets
     envVars:
