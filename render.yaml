@@ -154,6 +154,7 @@ services:
   - type: keyvalue
     name: nexus-redis
     plan: starter
+    ipAllowList: []
 
 databases:
   - name: nexus-postgres
