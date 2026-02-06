@@ -47,6 +47,7 @@ services:
           queryString: "?db=2"
       - key: SECURE_SSL_REDIRECT
         value: "True"
+      - key: SESSION_COOKIE_SECURE
         value: "True"
       - key: CSRF_COOKIE_SECURE
         value: "True"
