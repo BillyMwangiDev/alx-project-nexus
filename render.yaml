@@ -1,19 +1,21 @@
-# Render Blueprint for Movie Recommendation API
-# Properly formatted for the 2026 Render Blueprint Spec
+# Render Blueprint (Free Tier)
+# Single web service hosting Django + lightweight in-process worker (start.sh)
+# Free instances supported: Web services, Postgres, Key Value
 
 services:
   - type: web
     name: nexus-movie-api
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: >
       cd Movie-Recommendation-BE && 
       pip install -r requirements.txt && 
       python manage.py collectstatic --no-input &&
       python manage.py migrate
+    # Use the combined start script to run Celery (background) and Gunicorn
     startCommand: >
       cd Movie-Recommendation-BE && 
-      gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 4 --timeout 60
+      ./start.sh
     envVars:
       - key: PYTHON_VERSION
         value: "3.10.14"
@@ -64,106 +66,19 @@ services:
     domains:
       - your-app.onrender.com
 
-  - type: worker
-    name: nexus-celery-worker
-    runtime: python
-    plan: starter
-    buildCommand: >
-      cd Movie-Recommendation-BE && 
-      pip install -r requirements.txt
-    startCommand: >
-      cd Movie-Recommendation-BE && 
-      celery -A config worker -l info
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.10.14"
-      - key: DJANGO_SETTINGS_MODULE
-        value: config.settings
-      - key: DEBUG
-        value: "False"
-      - key: SECRET_KEY
-        generateValue: true
-      - key: TMDB_API_KEY
-        sync: false
-      - key: DATABASE_URL
-        fromDatabase:
-          name: nexus-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: nexus-redis
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: keyvalue
-          name: nexus-redis
-          property: connectionString
-          queryString: "?db=1"
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          type: keyvalue
-          name: nexus-redis
-          property: connectionString
-          queryString: "?db=2"
-
-  - type: cron
-    name: nexus-celery-beat
-    runtime: python
-    plan: starter
-    schedule: "0 * * * *"
-    buildCommand: >
-      cd Movie-Recommendation-BE && 
-      pip install -r requirements.txt
-    startCommand: >
-      cd Movie-Recommendation-BE && 
-      celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.10.14"
-      - key: DJANGO_SETTINGS_MODULE
-        value: config.settings
-      - key: DEBUG
-        value: "False"
-      - key: SECRET_KEY
-        generateValue: true
-      - key: TMDB_API_KEY
-        sync: false
-      - key: DATABASE_URL
-        fromDatabase:
-          name: nexus-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: nexus-redis
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: keyvalue
-          name: nexus-redis
-          property: connectionString
-          queryString: "?db=1"
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          type: keyvalue
-          name: nexus-redis
-          property: connectionString
-          queryString: "?db=2"
-
+  # Key Value (Redis) - Free instance
   - type: keyvalue
     name: nexus-redis
-    plan: starter
+    plan: free
     ipAllowList: []
 
 databases:
   - name: nexus-postgres
+    plan: free
     databaseName: nexus_db
-    user: nexus_user
-    ipAllowList: []
 
-# Notes for Render Dashboard Setup:
-# 1. Set SECRET_KEY via Render Dashboard (auto-generated above as fallback)
-# 2. Set ALLOWED_HOSTS in Render Dashboard (e.g. "your-app.onrender.com")
-# 3. Set TMDB_API_KEY in Render Dashboard
-# 4. Redis and PostgreSQL are created and wired automatically
+# Notes:
+# - Free tier permits only web, Postgres, and keyvalue services.
+# - Background workers/cron should be run in-process via `start.sh` on Free.
+# - Free Postgres expires after 30 days and has a 1 GB limit.
+# - Set ALLOWED_HOSTS and TMDB_API_KEY in the Render Dashboard (they're referenced via sync: false).
