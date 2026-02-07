@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
+# Exit on error
 set -o errexit
 
-# Export environment variables for build-time Django commands
+# Ensure we are in the script's directory (Movie-Recommendation-BE)
+cd "$(dirname "$0")"
+
 export DEBUG="True"
 export ALLOWED_HOSTS="*"
 
