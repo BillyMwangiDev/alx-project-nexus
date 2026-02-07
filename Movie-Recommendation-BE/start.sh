@@ -3,10 +3,7 @@
 # Exit on error
 set -o errexit
 
-echo "Starting Celery Worker..."
-# Run Celery in the background. Keep concurrency=1 for Free Tier to avoid OOM.
-celery -A apps.movies_api worker --loglevel=info --concurrency=1 &
-
 echo "Starting Gunicorn..."
+# Use python -m to run gunicorn from the virtualenv
 # Gunicorn stays in the foreground to keep the Render service running
-exec gunicorn apps.movies_api.wsgi:application --bind 0.0.0.0:$PORT
+exec python -m gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
