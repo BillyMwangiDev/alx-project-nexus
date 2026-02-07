@@ -10,10 +10,10 @@ services:
     name: movie-recommendation-be
     plan: free
     runtime: python
-    buildCommand: "./build.sh"
+    buildCommand: "./_build.sh"
     # Use a combined start script on the Free Tier to run Gunicorn and
     # any lightweight in-process worker logic if needed.
-    startCommand: "./start.sh"
+    startCommand: "cd Movie-Recommendation-BE && ./start.sh"
     healthCheckPath: /api/health/
     envVars:
       - key: DJANGO_SETTINGS_MODULE
