@@ -12,12 +12,13 @@ echo "Installing Poetry..."
 pip install poetry
 
 echo "Configuring Poetry..."
-# Force Poetry to create the .venv folder inside the project directory
-poetry config virtualenvs.in-project true
-poetry config virtualenvs.create true
+# Disable virtualenv creation to install directly into system/user packages
+# This is required because Render does not persist .venv directories well in this context
+poetry config virtualenvs.create false
 
 echo "Installing dependencies..."
 poetry install --no-root
+
 
 
 
