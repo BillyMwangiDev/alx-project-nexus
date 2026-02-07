@@ -18,6 +18,12 @@ poetry config virtualenvs.in-project true
 echo "Installing dependencies..."
 poetry install --no-root
 
+
+# Export build-time environment variables to ensure collectstatic works
+export DEBUG="True"
+export ALLOWED_HOSTS="*"
+export SECRET_KEY="build-time-secret-key"
+
 echo "Collecting static files..."
 poetry run python manage.py collectstatic --no-input
 
