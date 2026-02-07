@@ -79,7 +79,7 @@ CACHES = {
             },
             'SOCKET_CONNECT_TIMEOUT': 5,
             'SOCKET_TIMEOUT': 5,
-            'IGNORE_EXCEPTIONS': False,   # ← important: False (no **)
+            'IGNORE_EXCEPTIONS': False,   
         },
         'KEY_PREFIX': 'nexus_movie',
         'TIMEOUT': 60 * 15,
@@ -116,7 +116,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
