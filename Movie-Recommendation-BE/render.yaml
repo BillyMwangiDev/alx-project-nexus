@@ -10,7 +10,7 @@ services:
     name: movie-recommendation-be
     plan: free
     runtime: python
-    buildCommand: "./_build.sh"
+    buildCommand: "./build.sh"
     # Use a combined start script on the Free Tier to run Gunicorn and
     # any lightweight in-process worker logic if needed.
     startCommand: "cd Movie-Recommendation-BE && ./start.sh"
