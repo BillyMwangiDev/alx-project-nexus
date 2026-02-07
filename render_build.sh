@@ -27,7 +27,4 @@ export SECRET_KEY="build-time-secret-key"
 echo "Collecting static files..."
 poetry run python manage.py collectstatic --no-input
 
-echo "Running migrations..."
-poetry run python manage.py migrate
-
 echo "Build complete!"
