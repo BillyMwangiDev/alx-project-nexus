@@ -8,21 +8,31 @@ cd "$(dirname "$0")"
 export DEBUG="True"
 export ALLOWED_HOSTS="*"
 
-echo "Installing Poetry..."
+echo "Creating virtual environment..."
+# Explicitly create the virtualenv to guarantee its location
+python -m venv .venv
+
+echo "Activating virtual environment..."
+source .venv/bin/activate
+pip install --upgrade pip
+
+echo "Installing Poetry into virtual environment..."
 pip install poetry
 
 echo "Configuring Poetry..."
-poetry config virtualenvs.in-project true
+# Tell Poetry to use the currently active virtualenv
+poetry config virtualenvs.create false --local
 
 echo "Installing dependencies with Poetry..."
 poetry install --no-root
 
 
 
+
 echo "Collecting static files..."
-poetry run python manage.py collectstatic --no-input
+python manage.py collectstatic --no-input
 
 echo "Running migrations..."
-poetry run python manage.py migrate
+python manage.py migrate
 
 echo "Build complete!"
