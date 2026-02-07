@@ -4,6 +4,7 @@
 set -o errexit
 
 echo "Starting Gunicorn..."
-# Use python -m to run gunicorn from the virtualenv
+# Activate the virtualenv where packages are installed
+source /opt/render/project/src/.venv/bin/activate
 # Gunicorn stays in the foreground to keep the Render service running
-exec python -m gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+exec gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
