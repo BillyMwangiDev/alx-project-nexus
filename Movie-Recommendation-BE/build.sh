@@ -2,24 +2,22 @@
 set -o errexit
 
 # Export environment variables for build-time Django commands
-# These override any missing env vars from render.yaml during build
 export DEBUG="True"
 export ALLOWED_HOSTS="*"
 
-echo "Installing dependencies..."
-# Explicitly use the virtualenv python to install dependencies
-# This ensures packages are installed where we expect them
-/opt/render/project/src/.venv/bin/python -m pip install --upgrade pip
-/opt/render/project/src/.venv/bin/python -m pip install -r requirements.txt
+echo "Installing Poetry..."
+pip install poetry
 
-# Verify installation
-echo "Checking where gunicorn is installed..."
-find /opt/render/project/src/.venv -name gunicorn
+echo "Configuring Poetry..."
+poetry config virtualenvs.in-project true
+
+echo "Installing dependencies with Poetry..."
+poetry install --no-root
 
 echo "Collecting static files..."
-python manage.py collectstatic --no-input
+poetry run python manage.py collectstatic --no-input
 
 echo "Running migrations..."
-python manage.py migrate
+poetry run python manage.py migrate
 
 echo "Build complete!"

@@ -3,6 +3,6 @@
 # Exit on error
 set -o errexit
 
-echo "Starting Gunicorn..."
-# Use absolute path to gunicorn in the virtualenv
-exec /opt/render/project/src/.venv/bin/gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+echo "Starting Gunicorn with Poetry..."
+# poetry run handles the virtualenv path automatically
+exec poetry run gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
