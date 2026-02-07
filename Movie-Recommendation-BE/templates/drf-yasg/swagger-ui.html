@@ -1,0 +1,18 @@
+{% extends "drf-yasg/swagger-ui.html" %}
+
+{% block extra_styles %}
+<style>
+    /* Dark Mode Theme for Swagger UI */
+    body { background-color: #1b1b1b; color: #dcdcdc; }
+    .swagger-ui { filter: invert(90%) hue-rotate(180deg); }
+    .swagger-ui .microlight { filter: invert(0%) hue-rotate(0deg); }
+    .swagger-ui img { filter: invert(0%) hue-rotate(0deg); }
+    
+    /* Custom adjustments to prevent double inversion on specific elements */
+    .swagger-ui .info .title, .swagger-ui .info li, .swagger-ui .info p, .swagger-ui .info table { color: #fff !important; }
+    .swagger-ui .scheme-container { background: #222 !important; box-shadow: 0 1px 2px 0 rgba(0,0,0,.15); }
+    .swagger-ui .opblock.opblock-get { background: rgba(97,175,254,.1); border-color: #61affe; }
+    .swagger-ui .opblock.opblock-post { background: rgba(73,204,144,.1); border-color: #49cc90; }
+    .swagger-ui .opblock-tag { color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); }
+</style>
+{% endblock %}

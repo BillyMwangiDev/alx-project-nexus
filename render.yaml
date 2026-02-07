@@ -19,9 +19,9 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
-        value: "True"
+        value: "False"
       - key: ALLOWED_HOSTS
-        value: ".onrender.com"
+        value: "nexus-movie-app.onrender.com"
       - key: DATABASE_URL
         fromDatabase:
           name: nexus-database
@@ -48,7 +48,7 @@ services:
       - key: TMDB_API_KEY
         sync: false
       - key: SHOW_SWAGGER
-        value: "False"
+        value: "True"
       - key: PYTHON_VERSION
         value: "3.11.6"
       - key: WEB_CONCURRENCY
