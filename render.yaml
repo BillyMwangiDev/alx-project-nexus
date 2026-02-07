@@ -57,6 +57,7 @@ services:
   - type: keyvalue
     name: nexus-redis
     plan: free
+    ipAllowList: []
 
 databases:
   - name: nexus-postgres
