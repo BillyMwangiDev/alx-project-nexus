@@ -5,7 +5,7 @@
 services:
   # Main Web Service (Django)
   - type: web
-    name: nexus-movie-api
+    name: nexus-movie-app
     plan: free
     region: frankfurt
     runtime: python
@@ -24,22 +24,22 @@ services:
         value: ".onrender.com"
       - key: DATABASE_URL
         fromDatabase:
-          name: nexus-postgres
+          name: nexus-database
           property: connectionString
       - key: REDIS_URL
         fromService:
           type: keyvalue
-          name: nexus-redis
+          name: nexus-cache
           property: connectionString
       - key: CELERY_BROKER_URL
         fromService:
           type: keyvalue
-          name: nexus-redis
+          name: nexus-cache
           property: connectionString
       - key: CELERY_RESULT_BACKEND
         fromService:
           type: keyvalue
-          name: nexus-redis
+          name: nexus-cache
           property: connectionString
       - key: CSRF_TRUSTED_ORIGINS
         sync: false
@@ -56,13 +56,13 @@ services:
 
   # Redis as keyvalue service (Free Tier Valkey)
   - type: keyvalue
-    name: nexus-redis
+    name: nexus-cache
     plan: free
     region: frankfurt
     ipAllowList: []
 
 databases:
-  - name: nexus-postgres
+  - name: nexus-database
     plan: free
     region: frankfurt
     databaseName: movies_api
