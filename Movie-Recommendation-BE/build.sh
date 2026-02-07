@@ -2,9 +2,9 @@
 set -o errexit
 
 # Export environment variables for build-time Django commands
-# These are needed because render.yaml env vars aren't available yet during build
-export DEBUG="${DEBUG:-True}"
-export ALLOWED_HOSTS="${ALLOWED_HOSTS:-*}"
+# These override any missing env vars from render.yaml during build
+export DEBUG="True"
+export ALLOWED_HOSTS="*"
 
 echo "Installing dependencies..."
 pip install --upgrade pip
