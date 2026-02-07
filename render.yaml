@@ -45,7 +45,7 @@ services:
         value: "https://nexus-movie-app.onrender.com"
       - key: CORS_ALLOWED_ORIGINS
         value: "https://nexus-movie-app.onrender.com"
-      - key: TMDB_API_KEY
+      - key: TMDB_API_KEY # REQUIRED: Must be set manually in the Render Dashboard
         sync: false
       - key: SHOW_SWAGGER
         value: "True"

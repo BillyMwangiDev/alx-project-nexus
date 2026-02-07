@@ -3,15 +3,15 @@ A comprehensive backend API that delivers personalized movie recommendations wit
 **Live Demo:** [https://nexus-movie-app.onrender.com](https://nexus-movie-app.onrender.com)
 **API Documentation:** [https://nexus-movie-app.onrender.com/swagger/](https://nexus-movie-app.onrender.com/swagger/)
 
-[![Django](https://img.shields.io/badge/Django-5.0-green.svg)](https://www.djangoproject.com/)
+[![Django](https://img.shields.io/badge/Django-5.1-green.svg)](https://www.djangoproject.com/)
 [![DRF](https://img.shields.io/badge/DRF-3.14-red.svg)](https://www.django-rest-framework.org/)
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/tests-19%20passing-brightgreen.svg)](.)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-##  Table of Contents
+## Table of Contents
 
 - [Project Overview](#project-overview)
 - [Technical Stack](#technical-stack)
@@ -25,7 +25,7 @@ A comprehensive backend API that delivers personalized movie recommendations wit
 
 ---
 
-##  Project Overview
+## Project Overview
 
 This repository demonstrates a **production-ready approach** to building RESTful APIs for a movie recommendation platform. The system integrates with **The Movie Database (TMDb) API** to provide real-time movie data while maintaining a local database for user-specific features like ratings, playlists, and personalized recommendations.
 
@@ -51,18 +51,18 @@ Through this project, I gained practical experience with:
 
 ---
 
-##  Technical Stack
+## Technical Stack
 
 | Technology | Purpose |
 |------------|---------|
-| **Django 5.0** | Web framework and ORM |
+| **Django 5.1** | Web framework and ORM |
 | **Django REST Framework 3.14** | RESTful API development |
 | **PostgreSQL 16** | Primary relational database (Production) |
 | **Valkey 8 (Redis)** | High-speed cache and task broker |
 | **SimpleJWT** | JWT token authentication |
 | **TMDb API** | External movie data source |
 | **Swagger/OpenAPI** | Interactive API documentation |
-| **Python 3.10+** | Primary programming language |
+| **Python 3.11+** | Primary programming language |
 
 ### Architecture
 
@@ -96,7 +96,7 @@ Through this project, I gained practical experience with:
 
 ---
 
-##  Features
+## Features
 
 ### 1.  Movie Discovery
 - **Browse Movies**: Paginated list of all movies with 20 items per page
@@ -199,7 +199,7 @@ Through this project, I gained practical experience with:
 
 ---
 
-##  Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -232,10 +232,10 @@ poetry run python manage.py migrate
 poetry run python manage.py createsuperuser
 
 # 7. Load sample data
-python manage.py populate_movies
+poetry run python manage.py populate_movies
 
 # OR sync from TMDb (100 popular movies)
-python manage.py sync_tmdb_movies --category popular --pages 5
+poetry run python manage.py sync_tmdb_movies --category popular --pages 5
 
 # 8. Start development server
 poetry run python manage.py runserver
@@ -245,13 +245,13 @@ poetry run python manage.py runserver
 
 ```bash
 # Test TMDb connection
-python manage.py test_tmdb_config
+poetry run python manage.py test_tmdb_config
 
 # Search for a movie
-python manage.py search_tmdb "Inception" --save
+poetry run python manage.py search_tmdb "Inception" --save
 
 # Run tests
-python manage.py test
+poetry run python manage.py test
 ```
 
 Visit [https://nexus-movie-app.onrender.com/swagger/](https://nexus-movie-app.onrender.com/swagger/) to see the interactive API documentation!
@@ -351,7 +351,7 @@ For detailed API documentation with request/response examples, visit the interac
 
 ---
 
-##  Database Design
+## Database Design
 
 ### Entity Relationship Diagram
 
@@ -413,19 +413,19 @@ For complete database documentation, see [DATABASE.md](DATABASE.md)
 
 ---
 
-##  Testing
+## Testing
 
 ### Test Suite
 
 ```bash
 # Run all tests
-python manage.py test
+poetry run python manage.py test
 
 # Run with verbose output
-python manage.py test --verbosity=2
+poetry run python manage.py test --verbosity=2
 
 # Run specific test class
-python manage.py test apps.movies_api.tests.MovieMetadataTestCase
+poetry run python manage.py test apps.movies_api.tests.MovieMetadataTestCase
 ```
 
 ### Test Coverage
@@ -466,7 +466,7 @@ Destroying test database for alias 'default'...
 
 ---
 
-##  Project Structure
+## Project Structure
 
 ```
 Movie-Recommendation-BE/
@@ -508,7 +508,7 @@ Movie-Recommendation-BE/
 
 ---
 
-##  Challenges & Solutions
+## Challenges & Solutions
 
 ### Challenge 1: JSONField Filtering in SQLite
 
@@ -617,13 +617,13 @@ Keeps algorithm simple yet effective while being easy to tune and improve.
 
 ---
 
-##  License
+## License
 
 This project is licensed under the MIT License.
 
 ---
 
-##  Acknowledgments
+## Acknowledgments
 
 - **The Movie Database (TMDb)** - For providing comprehensive movie data via their free API
 - **Django & DRF Communities** - For excellent documentation and support
@@ -631,7 +631,7 @@ This project is licensed under the MIT License.
 
 ---
 
-##  Contact
+## Contact
 
 **GitHub**: [BillyMwangiDev](https://github.com/BillyMwangiDev)  
 **Email**: [Contact through GitHub]
@@ -639,7 +639,7 @@ This project is licensed under the MIT License.
 
 ---
 
-##  Future Enhancements
+## Future Enhancements
 
 Features planned for future versions:
 

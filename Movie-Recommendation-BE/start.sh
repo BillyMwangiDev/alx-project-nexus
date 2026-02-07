@@ -14,9 +14,13 @@ echo "Waiting for database to be ready..."
 MAX_RETRIES=30
 RETRY_COUNT=0
 
-until poetry run python manage.py migrate || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
-    echo "Database is not ready yet. Retrying in 5 seconds... ($RETRY_COUNT/$MAX_RETRIES)"
+until poetry run python manage.py migrate; do
+    EXIT_CODE=$?
+    echo "Database is not ready or migration failed (Exit Code: $EXIT_CODE). Retrying in 5 seconds... ($RETRY_COUNT/$MAX_RETRIES)"
     RETRY_COUNT=$((RETRY_COUNT+1))
+    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+        break
+    fi
     sleep 5
 done
 
