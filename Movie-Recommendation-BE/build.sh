@@ -8,23 +8,18 @@ cd "$(dirname "$0")"
 export DEBUG="True"
 export ALLOWED_HOSTS="*"
 
-echo "Creating virtual environment..."
-# Explicitly create the virtualenv to guarantee its location
-python -m venv .venv
-
-echo "Activating virtual environment..."
-source .venv/bin/activate
-pip install --upgrade pip
-
-echo "Installing Poetry into virtual environment..."
+echo "Installing Poetry..."
 pip install poetry
 
 echo "Configuring Poetry..."
-# Tell Poetry to use the currently active virtualenv
-poetry config virtualenvs.create false --local
+# Force Poetry to create the .venv folder inside the project directory
+poetry config virtualenvs.in-project true
+poetry config virtualenvs.create true
 
-echo "Installing dependencies with Poetry..."
+echo "Installing dependencies..."
 poetry install --no-root
+
+
 
 
 
