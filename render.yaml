@@ -7,6 +7,7 @@ services:
   - type: web
     name: nexus-movie-api
     plan: free
+    region: frankfurt
     runtime: python
     buildCommand: "./render_build.sh"
     # start.sh handles migrations (with wait loop) and starts Gunicorn
@@ -20,7 +21,7 @@ services:
       - key: DEBUG
         value: "True"
       - key: ALLOWED_HOSTS
-        value: "*"
+        value: ".onrender.com"
       - key: DATABASE_URL
         fromDatabase:
           name: nexus-postgres
@@ -57,9 +58,12 @@ services:
   - type: keyvalue
     name: nexus-redis
     plan: free
+    region: frankfurt
     ipAllowList: []
 
 databases:
   - name: nexus-postgres
     plan: free
+    region: frankfurt
     databaseName: movies_api
+    ipAllowList: []
