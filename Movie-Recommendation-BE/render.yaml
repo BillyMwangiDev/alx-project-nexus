@@ -20,6 +20,10 @@ services:
         value: config.settings
       - key: SECRET_KEY
         generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: movies-db
@@ -29,6 +33,24 @@ services:
           type: keyvalue
           name: movies-redis
           property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: movies-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: movies-redis
+          property: connectionString
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: TMDB_API_KEY
+        sync: false
+      - key: SHOW_SWAGGER
+        value: "False"
       - key: PYTHON_VERSION
         value: "3.11.6"
       - key: WEB_CONCURRENCY
