@@ -17,6 +17,8 @@ poetry config virtualenvs.in-project true
 echo "Installing dependencies with Poetry..."
 poetry install --no-root
 
+
+
 echo "Collecting static files..."
 poetry run python manage.py collectstatic --no-input
 
