@@ -1,8 +1,7 @@
-#  Nexus Movie Recommendation API
-
-> **ProDev Backend Engineering: Building a Production-Ready Movie Recommendation System**
-
 A comprehensive backend API that delivers personalized movie recommendations with social features. Built with Django REST Framework, featuring TMDb integration, JWT authentication, and intelligent recommendation algorithms.
+
+**Live Demo:** [https://nexus-movie-app.onrender.com](https://nexus-movie-app.onrender.com)
+**API Documentation:** [https://nexus-movie-app.onrender.com/swagger/](https://nexus-movie-app.onrender.com/swagger/)
 
 [![Django](https://img.shields.io/badge/Django-5.0-green.svg)](https://www.djangoproject.com/)
 [![DRF](https://img.shields.io/badge/DRF-3.14-red.svg)](https://www.django-rest-framework.org/)
@@ -58,7 +57,8 @@ Through this project, I gained practical experience with:
 |------------|---------|
 | **Django 5.0** | Web framework and ORM |
 | **Django REST Framework 3.14** | RESTful API development |
-| **PostgreSQL / SQLite** | Database (SQLite for development, PostgreSQL for production) |
+| **PostgreSQL 16** | Primary relational database (Production) |
+| **Valkey 8 (Redis)** | High-speed cache and task broker |
 | **SimpleJWT** | JWT token authentication |
 | **TMDb API** | External movie data source |
 | **Swagger/OpenAPI** | Interactive API documentation |
@@ -185,6 +185,18 @@ Through this project, I gained practical experience with:
 - **Advanced Filtering**: Filter and search across all models
 - **Inline Editing**: Edit related objects without navigation
 
+### 11.  Asynchronous Processing (Celery & Redis)
+- **Background Tasks**: Offload heavy operations to Celery workers.
+- **Task Scheduling**: Periodic sync of movie data using Celery Beat.
+- **Valkey Broker**: High-speed task queuing via Render's Key-Value service.
+
+### 12.  DevOps & Infrastructure
+- **Docker Ready**: Containerized environment with `docker-compose` for unified development.
+- **Continuous Integration**: Automated testing and linting via GitHub Actions.
+- **Automated Deployment**: CI/CD pipeline integrated with Render for seamless updates.
+- **Regional Optimization**: Deployed in `frankfurt` for lower latency.
+- **Auto-Provisioning**: Deployment scripts wait for infrastructure ready-states.
+
 ---
 
 ##  Getting Started
@@ -248,7 +260,7 @@ python manage.py search_tmdb "Inception" --save
 python manage.py test
 ```
 
-Visit http://127.0.0.1:8000/ to see the interactive API documentation!
+Visit [https://nexus-movie-app.onrender.com/swagger/](https://nexus-movie-app.onrender.com/swagger/) to see the interactive API documentation!
 
 ---
 
@@ -341,7 +353,7 @@ GET  /api/tmdb/search/?q={query}   # Search TMDb directly
 POST /api/tmdb/import/             # Import movie by tmdb_id (auth required)
 ```
 
-For detailed API documentation with request/response examples, visit the interactive Swagger UI at http://127.0.0.1:8000/
+For detailed API documentation with request/response examples, visit the interactive Swagger UI at [https://nexus-movie-app.onrender.com/swagger/](https://nexus-movie-app.onrender.com/swagger/)
 
 ---
 
@@ -627,9 +639,9 @@ This project is licensed under the MIT License.
 
 ##  Contact
 
-**GitHub**: [Your GitHub Profile]  
-**Email**: your.email@example.com  
-**LinkedIn**: [Your LinkedIn Profile]
+**GitHub**: [BillyMwangiDev](https://github.com/BillyMwangiDev)  
+**Email**: mwangi.billy@outlook.com
+**LinkedIn**: [Billy Mwangi](https://www.linkedin.com/in/billy-mwangi-0a1b2c3d) <!-- Please update with your actual LinkedIn if different -->
 
 ---
 
@@ -637,11 +649,11 @@ This project is licensed under the MIT License.
 
 Features planned for future versions:
 
-- [ ] **Redis Caching**: Implement Redis for search results and trending data
-- [ ] **Celery Background Tasks**: Add async processing for bulk operations
+- [x] **Redis Caching**: Implement Redis for search results and trending data (Implemented via Valkey 8)
+- [x] **Celery Background Tasks**: Add async processing for bulk operations
 - [ ] **GraphQL API**: Alternative query language for flexible data fetching
-- [ ] **Docker**: Containerize application for easier deployment
-- [ ] **CI/CD Pipeline**: Automated testing and deployment with GitHub Actions
+- [x] **Docker**: Containerize application for easier deployment
+- [x] **CI/CD Pipeline**: Automated testing and deployment with GitHub Actions
 - [ ] **WebSocket Support**: Real-time notifications for new ratings/playlists
 - [ ] **Social Features**: User following and activity feeds
 - [ ] **Advanced Analytics**: Viewing trends and recommendation insights
