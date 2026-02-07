@@ -12,9 +12,9 @@ echo "Installing Poetry..."
 pip install poetry
 
 echo "Configuring Poetry..."
-# Enable virtualenv creation to allow "poetry run" to work correctly
-poetry config virtualenvs.create true
-poetry config virtualenvs.in-project true
+# Disable virtualenv creation to install directly into system/user packages
+# This avoids issues with .venv persistence on Render
+poetry config virtualenvs.create false
 
 echo "Installing dependencies..."
 poetry install --no-root

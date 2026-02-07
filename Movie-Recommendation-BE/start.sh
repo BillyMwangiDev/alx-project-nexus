@@ -5,8 +5,8 @@ set -o errexit
 
 echo "Starting Gunicorn with Poetry..."
 # Let Poetry resolve the environment
-# Execute gunicorn directly from the virtual environment
-exec ./.venv/bin/gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+# Execute gunicorn as a module using the system python
+exec python -m gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
 
 
 
