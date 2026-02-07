@@ -2,15 +2,13 @@
 
 # Ensure we are in the correct directory
 if [ -d "Movie-Recommendation-BE" ]; then
-    cd Movie-Recommendation-BE
+    cd Movie-Recommendation-BE || exit 1
 fi
 
-
-# Export runtime environment variables as a fallback to ensure Django starts
-# These will be overridden by Render Dashboard variables if they exist
-export DEBUG=${DEBUG:-True}
-export ALLOWED_HOSTS=${ALLOWED_HOSTS:-"*"}
-export SECRET_KEY=${SECRET_KEY:-"runtime-secret-key-for-startup"}
+# Secure production defaults
+export DEBUG=${DEBUG:-False}
+export ALLOWED_HOSTS=${ALLOWED_HOSTS:-"localhost"}
+export SECRET_KEY=${SECRET_KEY:?"SECRET_KEY must be set"}
 
 echo "Waiting for database to be ready..."
 MAX_RETRIES=30
@@ -31,4 +29,4 @@ echo "Migrations completed successfully!"
 
 echo "Starting Gunicorn with Poetry..."
 # Execute gunicorn using poetry run, which will use the local .venv
-exec poetry run gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+exec poetry run gunicorn config.wsgi:application --bind "0.0.0.0:${PORT:-8000}"

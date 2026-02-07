@@ -2,16 +2,16 @@
 # For more info: https://docs.coderabbit.ai/configuration/
 reviews:
   profile: "chill"
-  request_reviews_auth_token: true
   auto_review:
     enabled: true
     drafts: false
   tools:
     shellcheck:
       enabled: true
-    black:
+    ruff:
       enabled: true
     flake8:
       enabled: true
 chat:
-  enabled: true
+  auto_reply: true
+  art: true

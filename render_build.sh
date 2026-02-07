@@ -8,7 +8,7 @@ echo "Deploying from root directory..."
 cd Movie-Recommendation-BE
 
 echo "Installing Poetry..."
-pip install poetry
+pip install "poetry==1.8.5"
 
 echo "Configuring Poetry..."
 # Force virtualenv creation in the project directory

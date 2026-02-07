@@ -42,9 +42,9 @@ services:
           name: nexus-cache
           property: connectionString
       - key: CSRF_TRUSTED_ORIGINS
-        sync: false
+        value: "https://nexus-movie-app.onrender.com"
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: "https://nexus-movie-app.onrender.com"
       - key: TMDB_API_KEY
         sync: false
       - key: SHOW_SWAGGER

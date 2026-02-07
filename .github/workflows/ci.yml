@@ -37,8 +37,8 @@ jobs:
     
     - name: Install Poetry
       run: |
-        curl -sSL https://install.python-poetry.org | python3 -
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.8.5 python3 -
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
     
     - name: Configure Poetry
       run: |
@@ -48,7 +48,7 @@ jobs:
     - name: Cache poetry venv
       uses: actions/cache@v4
       with:
-        path: .venv
+        path: Movie-Recommendation-BE/.venv
         key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
     
     - name: Install dependencies
@@ -97,7 +97,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report
-        path: Movie-Recommendation-BE/htmlcov/
+        path: Movie-Recommendation-BE/coverage.xml
 
   deploy:
     name: Deploy to Render
@@ -138,8 +138,8 @@ jobs:
     
     - name: Install Poetry
       run: |
-        curl -sSL https://install.python-poetry.org | python3 -
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.8.5 python3 -
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
     - name: Install dependencies
       run: |

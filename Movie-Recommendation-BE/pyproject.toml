@@ -8,7 +8,7 @@ packages = [{include = "config"}, {include = "apps"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-Django = "5.0.0"
+Django = "6.0.1"
 djangorestframework = "3.14.0"
 django-cors-headers = "4.3.1"
 django-filter = "23.5"
@@ -16,7 +16,7 @@ psycopg2-binary = "2.9.9"
 dj-database-url = "2.1.0"
 djangorestframework-simplejwt = "5.3.1"
 drf-yasg = "1.21.7"
-requests = "2.31.0"
+requests = "2.32.5"
 django-redis = "5.4.0"
 redis = "5.0.1"
 celery = "5.3.4"
@@ -48,10 +48,4 @@ isort = "5.13.2"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
-start = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
 
-# Configure poetry to create virtualenv in the project directory
-# This makes paths predictable: .venv in the project root
-[virtualenvs]
-in-project = true

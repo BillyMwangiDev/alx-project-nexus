@@ -203,8 +203,8 @@ Through this project, I gained practical experience with:
 
 ### Prerequisites
 
-- Python 3.10 or higher
-- pip package manager
+- Python 3.11 or higher
+- [Poetry](https://python-poetry.org/docs/#installation) package manager
 - Git
 - TMDb API Key ([Get free key](https://www.themoviedb.org/settings/api))
 
@@ -215,27 +215,21 @@ Through this project, I gained practical experience with:
 git clone https://github.com/yourusername/nexus-movie-api.git
 cd nexus-movie-api/Movie-Recommendation-BE
 
-# 2. Create virtual environment
-python -m venv venv
+# 2. Install dependencies
+poetry install
 
-# Activate (Windows)
-venv\Scripts\activate
-
-# Activate (macOS/Linux)
-source venv/bin/activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
+# 3. Activate virtual environment
+poetry shell
 
 # 4. Configure environment
 # Edit config/settings.py and add:
 TMDB_API_KEY = 'your_api_key_here'
 
 # 5. Run migrations
-python manage.py migrate
+poetry run python manage.py migrate
 
 # 6. Create superuser
-python manage.py createsuperuser
+poetry run python manage.py createsuperuser
 
 # 7. Load sample data
 python manage.py populate_movies
@@ -244,7 +238,7 @@ python manage.py populate_movies
 python manage.py sync_tmdb_movies --category popular --pages 5
 
 # 8. Start development server
-python manage.py runserver
+poetry run python manage.py runserver
 ```
 
 ### Quick Test
@@ -640,8 +634,8 @@ This project is licensed under the MIT License.
 ##  Contact
 
 **GitHub**: [BillyMwangiDev](https://github.com/BillyMwangiDev)  
-**Email**: mwangi.billy@outlook.com
-**LinkedIn**: [Billy Mwangi](https://www.linkedin.com/in/billy-mwangi-0a1b2c3d) <!-- Please update with your actual LinkedIn if different -->
+**Email**: [Contact through GitHub]
+**LinkedIn**: [Billy Mwangi](https://www.linkedin.com/in/billymwangi/)
 
 ---
 
