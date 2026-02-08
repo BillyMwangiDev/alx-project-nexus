@@ -19,16 +19,13 @@ poetry config virtualenvs.create false
 echo "Installing dependencies..."
 poetry install --no-root
 
-
-
-
-
-
-
 echo "Collecting static files..."
 python manage.py collectstatic --no-input
 
 echo "Running migrations..."
 python manage.py migrate
+
+echo "Seeding/Updating Movie Database..."
+python manage.py fetch_movies
 
 echo "Build complete!"
