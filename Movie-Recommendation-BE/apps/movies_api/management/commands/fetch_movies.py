@@ -1,4 +1,5 @@
 import requests
+import time
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from apps.movies_api.models import MovieMetadata
@@ -17,69 +18,75 @@ class Command(BaseCommand):
 
         self.stdout.write("Connecting to TMDB...")
         
-        # 2. Get Genre Mapping with error handling
+        # 2. Get Genre Mapping
         genre_map = self.get_genre_mapping(api_key)
         
-        # 3. Fetch Popular Movies
-        url = f"{settings.TMDB_BASE_URL}/movie/popular"
-        params = {
-            'api_key': api_key,
-            'language': 'en-US',
-            'page': 1
-        }
-        
-        try:
-            # Added a timeout to prevent the build process from hanging
-            response = requests.get(url, params=params, timeout=15)
+        count_created = 0
+        count_updated = 0
+
+        # 3. Fetch Multiple Pages (5 pages = 100 movies)
+        # We use a loop to iterate through pages
+        for page in range(1, 6):
+            self.stdout.write(f"Fetching page {page}...")
+            url = f"{settings.TMDB_BASE_URL}/movie/popular"
+            params = {
+                'api_key': api_key,
+                'language': 'en-US',
+                'page': page
+            }
             
-            # Check for HTTP errors before parsing JSON
-            if response.status_code != 200:
-                self.stdout.write(self.style.ERROR(
-                    f"TMDB API Error: Received status code {response.status_code}"
-                ))
-                return
-
-            data = response.json()
-            movies_data = data.get('results', [])
-            
-            count_created = 0
-            count_updated = 0
-
-            for movie in movies_data:
-                # Map genre IDs to Names: [28, 12] -> ["Action", "Adventure"]
-                genre_names = [
-                    genre_map.get(gid) for gid in movie.get('genre_ids', []) 
-                    if genre_map.get(gid)
-                ]
-
-                obj, created = MovieMetadata.objects.update_or_create(
-                    tmdb_id=movie['id'],
-                    defaults={
-                        'title': movie['title'],
-                        'overview': movie['overview'],
-                        'release_date': movie.get('release_date') or None,
-                        'poster_path': movie.get('poster_path', ''),
-                        'backdrop_path': movie.get('backdrop_path', ''),
-                        'vote_average': movie.get('vote_average', 0.0),
-                        'vote_count': movie.get('vote_count', 0),
-                        'popularity': movie.get('popularity', 0.0),
-                        'genres': genre_names,
-                    }
-                )
+            try:
+                response = requests.get(url, params=params, timeout=15)
                 
-                if created:
-                    count_created += 1
-                else:
-                    count_updated += 1
+                if response.status_code != 200:
+                    self.stdout.write(self.style.ERROR(
+                        f"TMDB API Error on page {page}: Received status code {response.status_code}"
+                    ))
+                    break # Stop if we hit an error
 
-            self.stdout.write(self.style.SUCCESS(
-                f"Sync Complete: {count_created} created, {count_updated} updated."
-            ))
+                data = response.json()
+                movies_data = data.get('results', [])
+                
+                for movie in movies_data:
+                    # Map genre IDs to Names
+                    genre_names = [
+                        genre_map.get(gid) for gid in movie.get('genre_ids', []) 
+                        if genre_map.get(gid)
+                    ]
 
-        except requests.exceptions.RequestException as e:
-            self.stdout.write(self.style.ERROR(f"Network error during fetch: {e}"))
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"An unexpected error occurred: {e}"))
+                    obj, created = MovieMetadata.objects.update_or_create(
+                        tmdb_id=movie['id'],
+                        defaults={
+                            'title': movie['title'],
+                            'overview': movie['overview'],
+                            'release_date': movie.get('release_date') or None,
+                            'poster_path': movie.get('poster_path', ''),
+                            'backdrop_path': movie.get('backdrop_path', ''),
+                            'vote_average': movie.get('vote_average', 0.0),
+                            'vote_count': movie.get('vote_count', 0),
+                            'popularity': movie.get('popularity', 0.0),
+                            'genres': genre_names,
+                        }
+                    )
+                    
+                    if created:
+                        count_created += 1
+                    else:
+                        count_updated += 1
+                
+                # Small pause to avoid hitting rate limits too hard
+                time.sleep(1)
+
+            except requests.exceptions.RequestException as e:
+                self.stdout.write(self.style.ERROR(f"Network error on page {page}: {e}"))
+                break
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Unexpected error on page {page}: {e}"))
+                break
+
+        self.stdout.write(self.style.SUCCESS(
+            f"Sync Complete: {count_created} new movies added, {count_updated} movies updated."
+        ))
 
     def get_genre_mapping(self, api_key):
         """Helper to get {id: 'Name'} mapping from TMDB with safety checks."""
