@@ -26,6 +26,6 @@ echo "Running migrations..."
 python manage.py migrate
 
 echo "Seeding/Updating Movie Database..."
-python manage.py fetch_movies
+python manage.py fetch_movies || echo "Warning: Movie seeding failed, continuing build."
 
 echo "Build complete!"
