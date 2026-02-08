@@ -1,52 +1,55 @@
 #!/usr/bin/env bash
 
-# Exit immediately if a command exits with a non-zero status
+# Exit on error and catch errors in piped commands
 set -o errexit
+set -o pipefail
 
-# 1. Directory Navigation
-# Checks if we are in the root or need to move into the subdirectory
+# 1. Directory Verification
+# Ensures we are in the folder containing manage.py
 if [ -f "manage.py" ]; then
-    echo "Current directory contains manage.py. Proceeding..."
+    echo "Starting from project root..."
 elif [ -d "Movie-Recommendation-BE" ]; then
     cd Movie-Recommendation-BE || exit 1
     echo "Moved into Movie-Recommendation-BE directory."
-else
-    echo "ERROR: Could not find manage.py or Movie-Recommendation-BE folder."
-    exit 1
 fi
 
-# 2. Environment Defaults
+# 2. Production Environment Checks
+# Ensure critical variables exist before starting
 export DEBUG=${DEBUG:-False}
 export ALLOWED_HOSTS=${ALLOWED_HOSTS:-"localhost"}
 export SECRET_KEY=${SECRET_KEY:?"SECRET_KEY must be set in Render Environment Variables"}
 
-# 3. Database Connection & Migration Logic
+# 3. Database Connection Wait & Final Migrations
 echo "Waiting for database to be ready..."
 MAX_RETRIES=30
 RETRY_COUNT=0
 
-# Loop until migrations succeed or max retries reached
+# Loop until migrations succeed (database is reachable)
 until poetry run python manage.py migrate --no-input; do
-    EXIT_CODE=$?
     RETRY_COUNT=$((RETRY_COUNT+1))
     
     if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-        echo "Database connection failed after $MAX_RETRIES attempts. Exiting."
+        echo "Database connection failed after maximum retries. Exiting."
         exit 1
     fi
     
-    echo "Database not ready (Exit Code: $EXIT_CODE). Retrying in 5s... ($RETRY_COUNT/$MAX_RETRIES)"
+    echo "Database not ready. Retrying in 5 seconds... ($RETRY_COUNT/$MAX_RETRIES)"
     sleep 5
 done
 
 echo "Migrations completed successfully!"
 
-# 4. Movie Data Seeding
-# We trigger the fetch_movies command here so it shows up in your live logs
+# 4. Data Seeding
+# Fetches initial movie data from TMDB. 
+# We run this here so you can see the progress in your live logs.
 echo "Seeding/Updating Movie Database..."
-poetry run python manage.py fetch_movies || echo "Warning: Movie seeding failed, but starting server anyway."
+poetry run python manage.py fetch_movies || echo "Warning: Movie seeding failed, starting app anyway."
 
-# 5. Launch Application
-echo "Starting Gunicorn with Poetry..."
-# Using 'exec' makes Gunicorn the primary process for better signal handling
-exec poetry run gunicorn config.wsgi:application --bind "0.0.0.0:${PORT:-8000}"
+# 5. Start Gunicorn
+# Uses 'exec' to handle process signals correctly.
+# Defaulting to 3 workers for better concurrency on Render.
+echo "Starting Gunicorn..."
+exec poetry run gunicorn config.wsgi:application \
+    --bind "0.0.0.0:${PORT:-8000}" \
+    --workers "${GUNICORN_WORKERS:-3}" \
+    --timeout 120

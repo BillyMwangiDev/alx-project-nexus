@@ -4,32 +4,34 @@ set -o errexit
 
 echo "Starting build process..."
 
-# FIX 1: Robust directory navigation (CodeRabbit Fix)
-# This ensures that if the folder is missing, the script stops IMMEDIATELY.
+# 1. Directory Navigation
+# Move into the backend directory where manage.py is located
 cd Movie-Recommendation-BE || { 
-    echo "ERROR: Movie-Recommendation-BE directory not found. Current location: $(pwd)"; 
+    echo "ERROR: Movie-Recommendation-BE directory not found."; 
     exit 1; 
 }
 
+# 2. Dependency Management
+# Pinning Poetry version to ensure reproducible builds
 echo "Installing Poetry..."
-pip install poetry
+pip install "poetry>=1.7,<2.0"
 
 echo "Configuring Poetry..."
 poetry config virtualenvs.create false
 
 echo "Installing dependencies..."
-# FIX 2: Supported group exclusion syntax (CodeRabbit Fix)
-# Using --without dev instead of the deprecated --no-dev
+# Using --without dev to skip testing/linting tools in production
 poetry install --without dev --no-root
+
+# 3. Environment Fallback
+# Django requires a SECRET_KEY to initialize. This temporary key allows 
+# collectstatic and migrate to run even if the real env var isn't injected yet.
+export SECRET_KEY=${SECRET_KEY:-"build-time-only-placeholder-value"}
 
 echo "Collecting static files..."
 python manage.py collectstatic --no-input
 
 echo "Running migrations..."
-python manage.py migrate
-
-echo "Seeding/Updating Movie Database..."
-# This will use your live TMDB_API_KEY and Postgres DB on Render
-python manage.py fetch_movies || echo "Warning: Movie seeding failed, continuing build."
+python manage.py migrate --no-input
 
 echo "Build complete!"
