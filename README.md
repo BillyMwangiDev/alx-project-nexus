@@ -1,142 +1,144 @@
-This version of your README is fully optimized to match the engineering standards of companies like Google or Microsoft. It incorporates every specific endpoint identified in your Swagger documentation, provides a deep dive into your PostgreSQL/Redis architecture, and outlines your production deployment on Render.
-
----
-
 # Nexus Movie API
 
-**A production-grade, high-performance movie recommendation engine and social platform.**
+**A production-ready movie recommendation engine and social platform.**
 
-Nexus Movie API is a sophisticated RESTful backend designed to deliver personalized movie discovery. Built with a service-oriented mindset, it features deep **TMDb integration**, a weighted **Recommendation Engine**, and social curation tools—all secured with **JWT authentication** and optimized via **Redis caching**.
-
-**[🚀 Live Demo](https://nexus-movie-app.onrender.com)** · **[📖 Interactive Swagger Docs](https://nexus-movie-app.onrender.com/swagger/)** · **[🛠 ReDoc](https://www.google.com/search?q=https://nexus-movie-app.onrender.com/redoc/)**
+**[🚀 Live Demo](https://nexus-movie-app.onrender.com)** · **[📖 Interactive Swagger Docs](https://nexus-movie-app.onrender.com/swagger/)** · **[📦 ReDoc](https://nexus-movie-app.onrender.com/redoc/)**
 
 ---
 
 ## 🏗 System Architecture
 
-The architecture prioritizes data integrity and low-latency retrieval. By decoupling the recommendation logic from the API views, the system maintains high throughput even during complex calculations.
+The project follows a **Service-Layer Pattern**, decoupling business logic from views to ensure high performance and testability.
 
-![alt text](<NEXUS.drawio (2).png>)
-
-![alt text](NEXUS.drawio.png)
 ```mermaid
 graph TD
-    Client[Web/Mobile Client] -->|HTTPS / JWT| LB[Render Load Balancer]
-    LB --> App[Django REST API]
-    
-    subgraph "Logic & Services"
-        App --> Auth[SimpleJWT Service]
-        App --> Rec[Match-Score Engine]
-        App --> Sync[TMDb Sync Service]
-    end
-    
-    subgraph "Persistence Layer"
-        App --> Redis[(Valkey/Redis 8)]
-        App --> DB[(PostgreSQL 16)]
-    end
-    
-    subgraph "External Providers"
-        Sync <-->|JSON Data| TMDB[The Movie DB API]
-    end
+    Client[Client/Frontend] -->|JWT Auth| App[Django REST Framework]
+    App --> Services[Service Layer: Rec Engine / TMDb Sync]
+    Services --> Cache[(Valkey/Redis Cache)]
+    Services --> DB[(PostgreSQL 16)]
+    Services <-->|Async| TMDB_API[External TMDb API]
 
 ```
 
 ---
 
+## ✨ Key Features
 
-## ✨ Key Technical Features
+### 🔐 Security & Authentication
 
-### 🔐 Advanced Security & Identity
+* **JWT Implementation**: Stateless authentication via `SimpleJWT` with token rotation.
+* **Throttling**: Tiered rate limiting (1000 requests/hr for authenticated users).
+* **Permissions**: Strict owner-based access for ratings and playlists.
 
-* **Stateless JWT:** Implements `SimpleJWT` for scalable authentication with automatic token rotation.
-* **RBAC Architecture:** Role-Based Access Control ensuring strict ownership of playlists, profiles, and ratings.
-* **Throttling:** Production-ready rate limiting to prevent API abuse.
+### 🧠 Recommendation Engine
 
-### 🧠 Intelligent Recommendations
+* **Match-Score Algorithm**: Calculates a compatibility score (0-100) based on:
+* **Genre Affinity (40%)**: Derived from user preference history.
+* **Rating History (30%)**: Similarity to highly-rated titles.
+* **Quality & Popularity (30%)**: Consensus metrics from TMDb.
 
-* **Match-Score Algorithm:** Calculates 0-100% user-movie compatibility based on genre affinity, rating history, and popularity.
-* **Cold Start Logic:** Fallback mechanisms to trending/top-rated titles for new users.
 
-### 🚀 Performance at Scale
 
-* **PostgreSQL 16:** Utilizes JSONB fields for optimized movie metadata storage and complex genre filtering.
-* **Valkey (Redis) Caching:** Drastically reduces external API latency for trending and recent movie data.
-* **Synchronous Import:** On-demand TMDb movie importing with automated data normalization.
+### 🎬 Discovery & Social
+
+* **TMDb Sync**: Automated data normalization and import of external movie metadata.
+* **Social Playlists**: Create, manage, and share public or private movie collections.
+* **Rating System**: 1-5 star ratings with unique constraints per user per movie.
 
 ---
 
-## 📖 API Endpoint Documentation
+## 📖 API Documentation
 
-Based on the [OpenAPI Specification](https://nexus-movie-app.onrender.com/swagger/).
+The API follows strict RESTful principles. Below is a subset of high-value endpoints.
 
-### 1. Authentication (`/auth/`)
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/auth/register/` | Create a new user account. |
-| `POST` | `/auth/token/` | Obtain Access & Refresh token pair. |
-| `POST` | `/auth/token/refresh/` | Rotate access tokens using a refresh token. |
-
-### 2. Movie Management (`/movies/`)
+### Discovery & Search
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/movies/` | List all movies with advanced filtering/pagination. |
-| `GET` | `/movies/{id}/` | Retrieve detailed metadata for a specific movie. |
-| `GET` | `/movies/trending/` | **(Cached)** Real-time global trending titles. |
-| `GET` | `/movies/top_rated/` | Curated list of high-consensus movies. |
-| `GET` | `/movies/recommendations/` | **(Auth)** AI-generated personalized movie feed. |
-| `GET` | `/movies/{id}/match_score/` | Returns compatibility score for the current user. |
-| `GET` | `/movies/{id}/similar/` | Algorithmically identified similar titles. |
+| `GET` | `/api/movies/` | List movies with advanced search/filter. |
+| `GET` | `/api/movies/trending/` | **(Cached)** Real-time global trending titles. |
+| `GET` | `/api/movies/recommendations/` | **(Auth)** AI-generated personalized feed. |
+| `GET` | `/api/tmdb/search/` | Live proxy search for global TMDb data. |
 
-### 3. Social & Profiles (`/profiles/`, `/playlists/`, `/ratings/`)
+### Interaction & Profiles
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/profiles/me/` | Retrieve/Update current user profile. |
-| `GET` | `/profiles/stats/` | Personalized analytics (watch time, top genres). |
-| `POST` | `/playlists/` | Create custom movie collections. |
-| `POST` | `/ratings/` | Submit a 1-5 star rating and optional review. |
-
-### 4. External Integration (`/tmdb/`)
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/tmdb/search/` | Live search proxy for the TMDb global database. |
-| `POST` | `/tmdb/import/` | Import a movie into the local PostgreSQL DB by TMDb ID. |
+| `POST` | `/api/ratings/` | Submit star ratings and text reviews. |
+| `GET` | `/api/profiles/stats/` | View personal viewing analytics. |
+| `POST` | `/api/playlists/` | Curate custom movie collections. |
 
 ---
 
 ## 🛠 Technology Stack
 
-* **Language:** Python 3.11+
-* **Backend:** Django 5.1 & Django REST Framework 3.14
-* **Database:** PostgreSQL 16 (Relational storage & JSONB)
-* **Caching:** Valkey 8.0 (High-speed Redis-compatible store)
-* **Hosting:** Render (Web Service + Managed Postgres + Redis)
-* **Testing:** Django Test Suite (19+ passing unit/integration tests)
+* **Backend**: Django 5.1 & Django REST Framework 3.14.
+* **Database**: PostgreSQL 16 (Hosted on Render).
+* **Caching**: Valkey 8 (Redis-compatible) for search and trending data.
+* **Infrastructure**: Hosted on Render with automated CI/CD.
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+The project maintains a rigorous test suite covering model constraints, API permissions, and the recommendation logic.
+
+```bash
+# Run all tests
+python manage.py test
+
+# 19 tests passing:
+# - Model Constraints & Signals
+# - JWT Auth & Rate Limiting
+# - Recommendation Scoring Logic
+# - TMDb Service Integration
+
+```
+
+---
+
+## ⚙️ Development Setup
+
+1. **Clone & Install**:
+```bash
+git clone https://github.com/BillyMwangiDev/alx-project-nexus.git
+pip install -r requirements.txt
+
+```
+
+
+2. **Environment**: Create a `.env` file based on `.env.example` including your `TMDB_API_KEY`.
+3. **Database Migration**:
+```bash
+python manage.py migrate
+python manage.py sync_tmdb_movies --category popular --pages 5
+
+```
+
+
+4. **Run Server**:
+```bash
+python manage.py runserver
+
+```
+
+
 
 ---
 
 ## 🔬 Engineering Decisions
 
-* **Choice of PostgreSQL:** We leverage PostgreSQL's robust JSONB indexing to handle dynamic genre arrays, allowing for  filtering speeds that outperform standard relational join tables in this use case.
-* **Redis Implementation:** External TMDb API calls are expensive and rate-limited. By implementing a **Cache-Aside pattern** in Redis, we reduce endpoint response times from ~1.2s to <80ms for popular data.
-* **Why REST over GraphQL?** To maintain strict HTTP caching standards and simplify third-party integration via standardized OpenAPI/Swagger documentation.
-
----
-
-## 🎓 Learning Outcomes (ALX Project Nexus)
-
-* **System Design:** Architecting a multi-service environment (Web + DB + Cache).
-* **Data Normalization:** Mapping complex external API schemas to a clean local 3NF PostgreSQL structure.
-* **Security Architecture:** Implementing stateless JWT sessions with secure token rotation strategies.
+* **JSONB for Genres**: We leverage PostgreSQL's JSONB to store genres, enabling high-speed array filtering without heavy junction table overhead.
+* **Cache-Aside Pattern**: Redis (Valkey) caches TMDb responses for 24 hours to stay within rate limits and reduce latency.
+* **Service Layer**: All TMDb logic is isolated in `services/tmdb_service.py` to keep views clean and reusable.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+This project is licensed under the MIT License.
 
-**Developed  by [Billy Mwangi**](https://github.com/BillyMwangiDev)
+**Developed by [Billy Mwangi**](https://github.com/BillyMwangiDev)
+
+---
 
