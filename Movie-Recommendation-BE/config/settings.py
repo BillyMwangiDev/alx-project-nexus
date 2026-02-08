@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     'drf_yasg',
     
     # Local apps
-    # Use the Config class to ensure ready() and signals are loaded
     'apps.movies_api.apps.MoviesApiConfig',
 ]
 
@@ -65,7 +64,9 @@ CACHES = {
             },
             'SOCKET_CONNECT_TIMEOUT': 5,
             'SOCKET_TIMEOUT': 5,
-            'IGNORE_EXCEPTIONS': False,   
+            # FIX: Only fail on Redis errors during development. 
+            # In production, allow the app to degrade gracefully if Redis is down.
+            'IGNORE_EXCEPTIONS': not DEBUG,   
         },
         'KEY_PREFIX': 'nexus_movie',
         'TIMEOUT': 60 * 15,
@@ -118,6 +119,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 db_url = config('DATABASE_URL', default='').strip()
 use_sqlite = False
 
+# Determine if we should use SQLite based on placeholders in URL
 if db_url:
     placeholder_tokens = ['@host', '//host', ':host', '@your', 'example.com']
     if any(tok in db_url for tok in placeholder_tokens):
@@ -133,6 +135,12 @@ if not use_sqlite and dj_database_url:
             conn_health_checks=True,
         )
     }
+# FIX: Raise error if DATABASE_URL is set but library is missing (Production Safety)
+elif not use_sqlite and dj_database_url is None:
+    raise ImproperlyConfigured(
+        'DATABASE_URL is set but dj-database-url is not installed. '
+        'Install it or remove DATABASE_URL to use SQLite.'
+    )
 else:
     DATABASES = {
         'default': {
