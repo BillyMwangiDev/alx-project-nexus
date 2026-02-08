@@ -21,6 +21,10 @@ poetry install --no-root
 echo "Collecting static files..."
 poetry run python manage.py collectstatic --no-input
 
+echo "Fetching latest movies from TMDB..."
+poetry run python manage.py fetch_movies || echo "Warning: Movie fetch failed, but continuing deployment."
+
+
 echo "Running migrations..."
 poetry run python manage.py migrate
 
