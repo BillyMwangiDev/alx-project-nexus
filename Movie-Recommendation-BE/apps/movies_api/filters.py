@@ -4,7 +4,8 @@ from django.db import connection
 
 class MovieMetadataFilter(django_filters.FilterSet):
     """
-    Custom optimized filters for MovieMetadata
+    Custom optimized filters for MovieMetadata.
+    Includes normalized genre filtering to maintain DB consistency.
     """
     title = django_filters.CharFilter(lookup_expr='icontains')
     
@@ -29,18 +30,27 @@ class MovieMetadataFilter(django_filters.FilterSet):
     
     class Meta:
         model = MovieMetadata
-        fields = ['title', 'year', 'year_gte', 'year_lte', 'min_rating', 'max_rating', 
-                  'min_popularity', 'min_runtime', 'max_runtime', 'genre']
+        fields = [
+            'title', 'year', 'year_gte', 'year_lte', 'min_rating', 
+            'max_rating', 'min_popularity', 'min_runtime', 'max_runtime', 'genre'
+        ]
     
     def filter_by_genre(self, queryset, name, value):
         """
-        Optimized genre filtering.
-        Avoids Python loops to prevent high latency.
+        Optimized genre filtering with cross-DB semantic consistency.
+        Normalizes the search term to lowercase to match canonical stored data.
         """
-        if connection.vendor == 'postgresql':
-            # PostgreSQL: Use native JSONB containment (fastest)
-            return queryset.filter(genres__contains=[value])
+        if not value:
+            return queryset
+
+        # Normalize the search value to lowercase to match stored canonical format
+        value_lower = value.lower()
         
-        # SQLite or others: Use DB-level string search instead of Python loops
-        # This is much faster than iterating through the queryset in Python
-        return queryset.filter(genres__icontains=value)
+        if connection.vendor == 'postgresql':
+            # PostgreSQL: Use native JSONB containment ([item] in list)
+            # This avoids substring matches (e.g., 'Drama' won't match 'Melodrama')
+            return queryset.filter(genres__contains=[value_lower])
+        
+        # SQLite/Other: Use DB-level string search
+        # Note: Since we store genres as lowercase, icontains acts as a safe fallback
+        return queryset.filter(genres__icontains=value_lower)

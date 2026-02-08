@@ -38,8 +38,15 @@ class MovieMetadataViewSet(viewsets.ModelViewSet):
         return MovieMetadataSerializer
     
     def get_queryset(self):
-        """Apply custom filters"""
+        """Apply custom filters with field optimization"""
         queryset = MovieMetadata.objects.all()
+        
+        # OPTIMIZATION: Restrict fields for list view to reduce DB load
+        if self.action == 'list':
+            queryset = queryset.only(
+                'id', 'tmdb_id', 'title', 'release_date', 
+                'poster_url', 'vote_average', 'popularity', 'genres'
+            )
         
         # Apply custom filterset
         filterset = MovieMetadataFilter(self.request.query_params, queryset=queryset)
@@ -47,9 +54,9 @@ class MovieMetadataViewSet(viewsets.ModelViewSet):
     
     def list(self, request, *args, **kwargs):
         """List movies with caching"""
-        # Generate cache key from query params
-        query_params = str(sorted(request.GET.items()))
-        cache_key_hash = hashlib.md5(query_params.encode()).hexdigest()
+        # Generate cache key from query params (sorted for consistency)
+        query_params = dict(sorted(request.GET.items()))
+        cache_key_hash = hashlib.md5(str(query_params).encode()).hexdigest()
         cache_key = CacheKeys.movie_list(cache_key_hash)
         
         # Try cache first

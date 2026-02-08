@@ -22,6 +22,7 @@ schema_view = get_schema_view(
 )
 
 def _health(request):
+    """Health endpoint for load balancers / probes"""
     return JsonResponse({'status': 'ok'})
 
 urlpatterns = [
@@ -31,7 +32,7 @@ urlpatterns = [
     # API
     path('api/', include('apps.movies_api.urls')),
 
-    # Health endpoint for load balancers / probes
+    # Health check
     path('api/health/', _health, name='health'),
 ]
 
@@ -44,7 +45,7 @@ if settings.DEBUG or getattr(settings, 'SHOW_SWAGGER', False):
         path('', schema_view.with_ui('swagger', cache_timeout=0), name='schema-root'),
     ]
 
-# Serve media files in development
+# Serve media and static files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

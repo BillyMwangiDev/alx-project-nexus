@@ -1,6 +1,4 @@
 from django.db import models
-
-# Create your models here.
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -19,7 +17,7 @@ class MovieMetadata(models.Model):
     vote_average = models.FloatField(default=0.0)
     vote_count = models.IntegerField(default=0)
     popularity = models.FloatField(default=0.0)
-    genres = models.JSONField(default=list)  # Store as list of genre names
+    genres = models.JSONField(default=list)  # Store as list of lowercase genre names
     runtime = models.IntegerField(null=True, blank=True)
     
     # Metadata
@@ -38,6 +36,12 @@ class MovieMetadata(models.Model):
     
     def __str__(self):
         return f"{self.title} ({self.release_date.year if self.release_date else 'N/A'})"
+
+    def save(self, *args, **kwargs):
+        """Normalize genres to lowercase before saving for consistent filtering."""
+        if isinstance(self.genres, list):
+            self.genres = [g.lower() for g in self.genres if isinstance(g, str)]
+        super().save(*args, **kwargs)
     
     @property
     def poster_url(self):
@@ -66,11 +70,16 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username}'s Profile"
 
+    def save(self, *args, **kwargs):
+        """Normalize favorite genres to lowercase for consistent recommendation matching."""
+        if isinstance(self.favorite_genres, list):
+            self.favorite_genres = [g.lower() for g in self.favorite_genres if isinstance(g, str)]
+        super().save(*args, **kwargs)
+
 
 class Rating(models.Model):
     """
     User ratings for movies (1-5 stars).
-    Used for personalized recommendations and match scores.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ratings')
     movie = models.ForeignKey(MovieMetadata, on_delete=models.CASCADE, related_name='user_ratings')
@@ -84,7 +93,7 @@ class Rating(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ('user', 'movie')  # One rating per user per movie
+        unique_together = ('user', 'movie')
         ordering = ['-created_at']
         verbose_name = 'Rating'
         verbose_name_plural = 'Ratings'
@@ -99,8 +108,7 @@ class Rating(models.Model):
 
 class Playlist(models.Model):
     """
-    User-created collections of movies (like watchlists or favorites).
-    Can be public or private.
+    User-created collections of movies.
     """
     VISIBILITY_CHOICES = [
         ('public', 'Public'),
@@ -134,9 +142,7 @@ class Playlist(models.Model):
     
     @property
     def movie_count(self):
-        """Return the number of movies in this playlist"""
         return self.movies.count()
     
     def is_accessible_by(self, user):
-        """Check if a user can access this playlist"""
         return self.visibility == 'public' or self.owner == user
