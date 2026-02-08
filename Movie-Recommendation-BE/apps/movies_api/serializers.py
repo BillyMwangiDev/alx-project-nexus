@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for UserProfile model"""
+    """Serializer for UserProfile model with genre normalization"""
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.CharField(source='user.email', read_only=True)
     
@@ -20,6 +20,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['id', 'username', 'email', 'favorite_genres', 'bio', 'avatar_url', 'created_at', 'updated_at']
         read_only_fields = ['id', 'username', 'email', 'created_at', 'updated_at']
+
+    def validate_favorite_genres(self, value):
+        """
+        Normalize favorite genres to lowercase at the API level.
+        Ensures consistent matching with normalized movie genres.
+        """
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Favorite genres must be a list.")
+        return [str(genre).strip().lower() for genre in value if genre]
 
 
 class MovieMetadataSerializer(serializers.ModelSerializer):
@@ -41,6 +50,12 @@ class MovieMetadataSerializer(serializers.ModelSerializer):
         if obj.release_date:
             return obj.release_date.year
         return None
+
+    def validate_genres(self, value):
+        """Normalize genres to lowercase during API writes/updates."""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Genres must be a list.")
+        return [str(g).strip().lower() for g in value if g]
 
 
 class MovieMetadataListSerializer(serializers.ModelSerializer):
@@ -76,7 +91,7 @@ class RatingSerializer(serializers.ModelSerializer):
     
     def validate_score(self, value):
         """Ensure score is between 1 and 5"""
-        if value < 1 or value > 5:
+        if not (1 <= value <= 5):
             raise serializers.ValidationError("Score must be between 1 and 5")
         return value
 
@@ -157,4 +172,3 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', '')
         )
         return user
-      

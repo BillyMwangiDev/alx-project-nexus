@@ -7,28 +7,50 @@
 services:
   # Main Web Service (Django)
   - type: web
-    name: movie-recommendation-be
+    name: nexus-movie-api
     plan: free
     runtime: python
-    buildCommand: "./build.sh"
+    buildCommand: "./render_build.sh"
     # Use a combined start script on the Free Tier to run Gunicorn and
     # any lightweight in-process worker logic if needed.
-    startCommand: "./start.sh"
+    startCommand: "cd Movie-Recommendation-BE && ./start.sh"
     healthCheckPath: /api/health/
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
       - key: SECRET_KEY
         generateValue: true
+      - key: DEBUG
+        value: "True"
+      - key: ALLOWED_HOSTS
+        value: "*"
       - key: DATABASE_URL
         fromDatabase:
-          name: movies-db
+          name: nexus-postgres
           property: connectionString
       - key: REDIS_URL
         fromService:
           type: keyvalue
-          name: movies-redis
+          name: nexus-redis
           property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: nexus-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: nexus-redis
+          property: connectionString
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: TMDB_API_KEY
+        sync: false
+      - key: SHOW_SWAGGER
+        value: "False"
       - key: PYTHON_VERSION
         value: "3.11.6"
       - key: WEB_CONCURRENCY
@@ -36,11 +58,11 @@ services:
 
   # Redis as keyvalue service (allowed on Free plan)
   - type: keyvalue
-    name: movies-redis
+    name: nexus-redis
     plan: free
 
 databases:
-  - name: movies-db
+  - name: nexus-postgres
     plan: free
     databaseName: movies_api
 

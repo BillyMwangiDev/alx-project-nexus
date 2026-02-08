@@ -1,0 +1,17 @@
+# CodeRabbit configuration
+# For more info: https://docs.coderabbit.ai/configuration/
+reviews:
+  profile: "chill"
+  auto_review:
+    enabled: true
+    drafts: false
+  tools:
+    shellcheck:
+      enabled: true
+    ruff:
+      enabled: true
+    flake8:
+      enabled: true
+chat:
+  auto_reply: true
+  art: true
