@@ -2,29 +2,34 @@
 # Exit on error
 set -o errexit
 
-echo "Deploying from root directory..."
+echo "Starting build process..."
 
-# Navigate to the backend directory
-cd Movie-Recommendation-BE
+# FIX 1: Robust directory navigation (CodeRabbit Fix)
+# This ensures that if the folder is missing, the script stops IMMEDIATELY.
+cd Movie-Recommendation-BE || { 
+    echo "ERROR: Movie-Recommendation-BE directory not found. Current location: $(pwd)"; 
+    exit 1; 
+}
 
 echo "Installing Poetry..."
-pip install "poetry==1.8.5"
+pip install poetry
 
 echo "Configuring Poetry..."
-# Force virtualenv creation in the project directory
-poetry config virtualenvs.create true
-poetry config virtualenvs.in-project true
+poetry config virtualenvs.create false
 
 echo "Installing dependencies..."
-poetry install --no-root
-
-
-# Export build-time environment variables to ensure collectstatic works
-export DEBUG="True"
-export ALLOWED_HOSTS="*"
-export SECRET_KEY="build-time-secret-key"
+# FIX 2: Supported group exclusion syntax (CodeRabbit Fix)
+# Using --without dev instead of the deprecated --no-dev
+poetry install --without dev --no-root
 
 echo "Collecting static files..."
-poetry run python manage.py collectstatic --no-input
+python manage.py collectstatic --no-input
+
+echo "Running migrations..."
+python manage.py migrate
+
+echo "Seeding/Updating Movie Database..."
+# This will use your live TMDB_API_KEY and Postgres DB on Render
+python manage.py fetch_movies || echo "Warning: Movie seeding failed, continuing build."
 
 echo "Build complete!"
