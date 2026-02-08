@@ -2,22 +2,20 @@
 # Exit on error
 set -o errexit
 
-# Ensure we are in the script's directory (Movie-Recommendation-BE)
-cd "$(dirname "$0")"
+echo "Starting build process..."
 
-export DEBUG="True"
-export ALLOWED_HOSTS="*"
+
+cd Movie-Recommendation-BE || echo "Already in Movie-Recommendation-BE or directory not found"
 
 echo "Installing Poetry..."
 pip install poetry
 
 echo "Configuring Poetry..."
-# Disable virtualenv creation to install directly into system/user packages
-# This avoids issues with .venv persistence on Render
+
 poetry config virtualenvs.create false
 
 echo "Installing dependencies..."
-poetry install --no-root
+poetry install --no-dev --no-root
 
 echo "Collecting static files..."
 python manage.py collectstatic --no-input
@@ -26,6 +24,7 @@ echo "Running migrations..."
 python manage.py migrate
 
 echo "Seeding/Updating Movie Database..."
+
 python manage.py fetch_movies || echo "Warning: Movie seeding failed, continuing build."
 
 echo "Build complete!"
