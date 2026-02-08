@@ -1,12 +1,11 @@
 import django_filters
 from .models import MovieMetadata
-
+from django.db import connection
 
 class MovieMetadataFilter(django_filters.FilterSet):
     """
-    Custom filters for MovieMetadata
+    Custom optimized filters for MovieMetadata
     """
-    # Title search (case-insensitive, partial match)
     title = django_filters.CharFilter(lookup_expr='icontains')
     
     # Year filtering
@@ -25,7 +24,7 @@ class MovieMetadataFilter(django_filters.FilterSet):
     min_runtime = django_filters.NumberFilter(field_name='runtime', lookup_expr='gte')
     max_runtime = django_filters.NumberFilter(field_name='runtime', lookup_expr='lte')
     
-    # Genre filtering (contains)
+    # Genre filtering
     genre = django_filters.CharFilter(method='filter_by_genre')
     
     class Meta:
@@ -35,20 +34,13 @@ class MovieMetadataFilter(django_filters.FilterSet):
     
     def filter_by_genre(self, queryset, name, value):
         """
-        Filter movies that contain the specified genre in their genres JSON field
-        Works with both SQLite and PostgreSQL
+        Optimized genre filtering.
+        Avoids Python loops to prevent high latency.
         """
-        # For SQLite: use Python filtering
-        # For PostgreSQL: use native JSON contains
-        from django.db import connection
+        if connection.vendor == 'postgresql':
+            # PostgreSQL: Use native JSONB containment (fastest)
+            return queryset.filter(genres__contains=[value])
         
-        if connection.vendor == 'sqlite':
-            # SQLite: Filter in Python (less efficient but works)
-            movie_ids = []
-            for movie in queryset:
-                if movie.genres and value in movie.genres:
-                    movie_ids.append(movie.id)
-            return queryset.filter(id__in=movie_ids)
-        else:
-            # PostgreSQL: Use native JSON contains
-            return queryset.filter(genres__contains=[value]) 
+        # SQLite or others: Use DB-level string search instead of Python loops
+        # This is much faster than iterating through the queryset in Python
+        return queryset.filter(genres__icontains=value)
